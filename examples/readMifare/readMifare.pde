@@ -1,9 +1,9 @@
 #include <PN532.h>
 
 #define SCK 2
-#define MISO 3
-#define MOSI 4
-#define SS 5
+#define MOSI 3
+#define SS 4
+#define MISO 5
 
 PN532 nfc(SCK, MISO, MOSI, SS);
 
