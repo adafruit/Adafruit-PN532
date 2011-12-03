@@ -1,4 +1,3 @@
-#include <WProgram.h>
 #include "PN532.h"
 
 //#define PN532DEBUG 1

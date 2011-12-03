@@ -1,7 +1,11 @@
 // PN532 library by adafruit/ladyada
 // MIT license
 
-#include <WProgram.h>
+#if ARDUINO >= 100
+ #include "Arduino.h"
+#else
+ #include "WProgram.h"
+#endif
 
 #define PN532_PREAMBLE 0x00
 #define PN532_STARTCODE1 0x00
