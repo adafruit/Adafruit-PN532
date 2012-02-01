@@ -19,17 +19,30 @@
     Ultralight card, and the 4 byte pages can be read directly.
     Page 4 is read by default since this is the first 'general-
     purpose' page on the tags.
+
+
+This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
+This library works with the Adafruit NFC breakout 
+  ----> https://www.adafruit.com/products/364
+ 
+Check out the links above for our tutorials and wiring diagrams 
+These chips use SPI to communicate, 4 required to interface
+
+Adafruit invests time and resources providing this open source code, 
+please support Adafruit and open-source hardware by purchasing 
+products from Adafruit!
+
 */
 /**************************************************************************/
 
-#include <PN532.h>
+#include <Adafruit_PN532.h>
 
 #define SCK  (2)
 #define MOSI (3)
 #define SS   (4)
 #define MISO (5)
 
-PN532 nfc(SCK, MISO, MOSI, SS);
+Adafruit_PN532 nfc(SCK, MISO, MOSI, SS);
 
 void setup(void) {
   Serial.begin(9600);

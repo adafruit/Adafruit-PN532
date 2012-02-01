@@ -1,9 +1,21 @@
 /**************************************************************************/
 /*! 
-    @file     PN532.h
+    @file     Adafruit_PN532.h
     @author   Adafruit Industries
 	@license  BSD (see license.txt)
 	
+
+	This is a library for the Adafruit PN532 NFC/RFID breakout boards
+	This library works with the Adafruit NFC breakout 
+	----> https://www.adafruit.com/products/364
+	
+	Check out the links above for our tutorials and wiring diagrams 
+	These chips use SPI to communicate, 4 required to interface
+	
+	Adafruit invests time and resources providing this open source code, 
+	please support Adafruit and open-source hardware by purchasing 
+	products from Adafruit!
+
 	@section  HISTORY
 
 	v1.1  - Added full command list
@@ -121,9 +133,9 @@
 #define PN532_GPIO_P34                      (4)
 #define PN532_GPIO_P35                      (5)
 
-class PN532{
+class Adafruit_PN532{
  public:
-  PN532(uint8_t cs, uint8_t clk, uint8_t mosi, uint8_t miso);
+  Adafruit_PN532(uint8_t cs, uint8_t clk, uint8_t mosi, uint8_t miso);
   void begin(void);
   
   // Generic PN532 functions
