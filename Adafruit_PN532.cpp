@@ -37,7 +37,12 @@
              uint8_t mifareultralight_ReadPage (uint8_t page, uint8_t * buffer)	
 */
 /**************************************************************************/
-#include <WProgram.h>
+#if ARDUINO >= 100
+ #include "Arduino.h"
+#else
+ #include "WProgram.h"
+#endif
+
 #include "Adafruit_PN532.h"
 
 byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
