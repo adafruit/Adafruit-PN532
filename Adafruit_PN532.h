@@ -1,19 +1,19 @@
 /**************************************************************************/
-/*! 
+/*!
     @file     Adafruit_PN532.h
     @author   Adafruit Industries
 	@license  BSD (see license.txt)
-	
+
 
 	This is a library for the Adafruit PN532 NFC/RFID breakout boards
-	This library works with the Adafruit NFC breakout 
+	This library works with the Adafruit NFC breakout
 	----> https://www.adafruit.com/products/364
-	
-	Check out the links above for our tutorials and wiring diagrams 
+
+	Check out the links above for our tutorials and wiring diagrams
 	These chips use SPI to communicate, 4 required to interface
-	
-	Adafruit invests time and resources providing this open source code, 
-	please support Adafruit and open-source hardware by purchasing 
+
+	Adafruit invests time and resources providing this open source code,
+	please support Adafruit and open-source hardware by purchasing
 	products from Adafruit!
 
 	@section  HISTORY
@@ -21,7 +21,7 @@
 	v1.1  - Added full command list
           - Added 'verbose' mode flag to constructor to toggle debug output
           - Changed readPassiveTargetID() to return variable length values
-	
+
 */
 /**************************************************************************/
 
@@ -141,17 +141,17 @@ class Adafruit_PN532{
  public:
   Adafruit_PN532(uint8_t cs, uint8_t clk, uint8_t mosi, uint8_t miso);
   void begin(void);
-  
+
   // Generic PN532 functions
   boolean SAMConfig(void);
   uint32_t getFirmwareVersion(void);
-  boolean sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);  
+  boolean sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);
   boolean writeGPIO(uint8_t pinstate);
   uint8_t readGPIO(void);
-  
+
   // ISO14443A functions
   boolean readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength);
-  
+
   // Mifare Classic functions
   bool mifareclassic_IsFirstBlock (uint32_t uiBlock);
   bool mifareclassic_IsTrailerBlock (uint32_t uiBlock);
@@ -163,7 +163,7 @@ class Adafruit_PN532{
   
   // Mifare Ultralight functions
   uint8_t mifareultralight_ReadPage (uint8_t page, uint8_t * buffer);
-  
+
   // Help functions to display formatted text
   static void PrintHex(const byte * data, const uint32_t numBytes);
   static void PrintHexChar(const byte * pbtData, const uint32_t numBytes);
