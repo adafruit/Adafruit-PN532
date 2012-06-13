@@ -1,23 +1,23 @@
 /**************************************************************************/
-/*! 
+/*!
     @file     mifareclassic_memdump.pde
     @author   Adafruit Industries
 	@license  BSD (see license.txt)
 
     This example attempts to dump the contents of a Mifare Classic 1K card
-	
+
     Note that you need the baud rate to be 115200 because we need to print
 	out the data and read from the card at the same time!
 
 This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
-This library works with the Adafruit NFC breakout 
+This library works with the Adafruit NFC breakout
   ----> https://www.adafruit.com/products/364
- 
-Check out the links above for our tutorials and wiring diagrams 
+
+Check out the links above for our tutorials and wiring diagrams
 These chips use SPI to communicate, 4 required to interface
 
-Adafruit invests time and resources providing this open source code, 
-please support Adafruit and open-source hardware by purchasing 
+Adafruit invests time and resources providing this open source code,
+please support Adafruit and open-source hardware by purchasing
 products from Adafruit!
 
 */
@@ -45,13 +45,13 @@ void setup(void) {
     while (1); // halt
   }
   // Got ok data, print it out!
-  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX);
+  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC);
   Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
-  
+
   // configure board to read RFID tags
   nfc.SAMConfig();
-  
+
   Serial.println("Waiting for an ISO14443A Card ...");
 }
 
@@ -69,12 +69,12 @@ void loop(void) {
   uint8_t keyb[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
   // uint8_t keya[6] = { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5 };
   // uint8_t keyb[6] = { 0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7 };
-    
+
   // Wait for an ISO14443A type cards (Mifare, etc.).  When one is found
   // 'uid' will be populated with the UID, and uidLength will indicate
   // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-  
+
   if (success) {
     // Display some basic information about the card
     Serial.println("Found an ISO14443A card");
@@ -82,19 +82,19 @@ void loop(void) {
     Serial.print("  UID Value: ");
     nfc.PrintHex(uid, uidLength);
     Serial.println("");
-    
+
     if (uidLength == 4)
     {
-      // We probably have a Mifare Classic card ... 
+      // We probably have a Mifare Classic card ...
       Serial.println("Seems to be a Mifare Classic card (4 byte UID)");
-      
+
       // Now we try to go through all 16 sector (each having 4 blocks)
-      // authenticating each sector, and then dumping the blocks            
+      // authenticating each sector, and then dumping the blocks
       for (currentblock = 0; currentblock < 64; currentblock++)
       {
         // Check if this is a new block so that we can reauthenticate
         if (nfc.mifareclassic_IsFirstBlock(currentblock)) authenticated = false;
-        
+
         // If the sector hasn't been authenticated, do so first
         if (!authenticated)
         {
@@ -116,7 +116,7 @@ void loop(void) {
           {
             Serial.println("Authentication error");
           }
-        }        
+        }
         // If we're still not authenticated just skip the block
         if (!authenticated)
         {
@@ -148,12 +148,12 @@ void loop(void) {
             Serial.print("Block ");Serial.print(currentblock, DEC);
             Serial.println(" unable to read this block");
           }
-        }       
+        }
       }
     }
     else
     {
-      Serial.println("Ooops ... this doesn't seem to be a Mifare Classic card!"); 
+      Serial.println("Ooops ... this doesn't seem to be a Mifare Classic card!");
     }
   }
   // Wait a bit before trying again
