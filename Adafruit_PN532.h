@@ -148,6 +148,7 @@ class Adafruit_PN532{
   boolean sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);  
   boolean writeGPIO(uint8_t pinstate);
   uint8_t readGPIO(void);
+  boolean setPassiveActivationRetries(uint8_t maxRetries);
   
   // ISO14443A functions
   boolean readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength);
