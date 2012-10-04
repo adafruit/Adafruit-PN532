@@ -542,7 +542,7 @@ uint8_t Adafruit_PN532::mifareclassic_AuthenticateBlock (uint8_t * uid, uint8_t 
   // Prepare the authentication command //
   pn532_packetbuffer[0] = PN532_COMMAND_INDATAEXCHANGE;   /* Data Exchange Header */
   pn532_packetbuffer[1] = 1;                              /* Max card numbers */
-  pn532_packetbuffer[2] = (keyNumber) ? MIFARE_CMD_AUTH_A : MIFARE_CMD_AUTH_B;
+  pn532_packetbuffer[2] = (keyNumber) ? MIFARE_CMD_AUTH_B : MIFARE_CMD_AUTH_A;
   pn532_packetbuffer[3] = blockNumber;                    /* Block Number (1K = 0..63, 4K = 0..255 */
   memcpy (pn532_packetbuffer+4, _key, 6);
   for (i = 0; i < _uidLen; i++)
