@@ -55,6 +55,11 @@ void setup(void) {
   nfc.SAMConfig();
   
   Serial.println("");
+  Serial.println("PLEASE NOTE: Formatting your card for NDEF records will change the");
+  Serial.println("authentication keys and you will no longer be able to read the");
+  Serial.println("card as a normal Mifare card without resetting all keys.  Try to keep");
+  Serial.println("seperate cards for NDEF and non-NDEF purposes.");
+  Serial.println("");
   Serial.println("Place your Mifare Classic card on the reader to format with NDEF");
   Serial.println("and press any key to continue ...");
   // Wait for user input before proceeding
