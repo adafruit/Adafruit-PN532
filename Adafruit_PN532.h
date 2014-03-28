@@ -139,7 +139,7 @@
 
 class Adafruit_PN532{
  public:
-  Adafruit_PN532(uint8_t cs, uint8_t clk, uint8_t mosi, uint8_t miso);
+  Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss);
   void begin(void);
   
   // Generic PN532 functions
