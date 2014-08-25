@@ -399,6 +399,15 @@ boolean Adafruit_PN532::setPassiveActivationRetries(uint8_t maxRetries) {
   return 1;
 }
 
+void Adafruit_PN532::enableRead(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength) {
+    pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
+    pn532_packetbuffer[1] = 1;  // max 1 cards at once (we can set this to 2 later)
+    pn532_packetbuffer[2] = cardbaudrate;
+    
+    sendCommandCheckAck(pn532_packetbuffer, 3, 0);
+}
+
+
 /***** ISO14443A Commands ******/
 
 /**************************************************************************/

@@ -150,6 +150,9 @@ class Adafruit_PN532{
   uint8_t readGPIO(void);
   boolean setPassiveActivationRetries(uint8_t maxRetries);
   
+    void enableRead(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength);
+
+    
   // ISO14443A functions
   boolean readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength);
   
