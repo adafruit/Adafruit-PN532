@@ -57,6 +57,10 @@ byte pn532response_firmwarevers[] = {0x00, 0xFF, 0x06, 0xFA, 0xD5, 0x03};
 #define PN532_PACKBUFFSIZ 64
 byte pn532_packetbuffer[PN532_PACKBUFFSIZ];
 
+#ifndef _BV
+    #define _BV(bit) (1<<(bit))
+#endif
+
 /**************************************************************************/
 /*! 
     @brief  Instantiates a new PN532 class
