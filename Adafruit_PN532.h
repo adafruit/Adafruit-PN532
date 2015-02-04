@@ -25,11 +25,19 @@
 */
 /**************************************************************************/
 
+#ifndef ADAFRUIT_PN532_H_
+#define ADAFRUIT_PN532_H_
+
 #if ARDUINO >= 100
  #include "Arduino.h"
 #else
  #include "WProgram.h"
+ #include <pins_arduino.h>
 #endif
+
+#include "pins_arduino.h"
+#include "wiring_private.h"
+#include "SPI.h"
 
 #define PN532_PREAMBLE                      (0x00)
 #define PN532_STARTCODE1                    (0x00)
@@ -140,6 +148,7 @@
 class Adafruit_PN532{
  public:
   Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss);
+  Adafruit_PN532(uint8_t ss);
   void begin(void);
   
   // Generic PN532 functions
@@ -181,4 +190,7 @@ class Adafruit_PN532{
   void spiwritecommand(uint8_t* cmd, uint8_t cmdlen);
   void spiwrite(uint8_t c);
   uint8_t spiread(void);
+  boolean useHardwareSPI;
 };
+
+#endif //ADAFRUIT_PN532_H_
