@@ -588,7 +588,7 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
     @param  responseLength  Pointer to the response data length
 */
 /**************************************************************************/
-boolean Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength) {
+bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength) {
   if (sendLength > PN532_PACKBUFFSIZ-2) {
     #ifdef PN532DEBUG
       Serial.println(F("APDU length too long for packet buffer"));
@@ -668,7 +668,7 @@ boolean Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8
             peer acting as card/responder.
 */
 /**************************************************************************/
-boolean Adafruit_PN532::inListPassiveTarget() {
+bool Adafruit_PN532::inListPassiveTarget() {
   pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
   pn532_packetbuffer[1] = 1;
   pn532_packetbuffer[2] = 0;
