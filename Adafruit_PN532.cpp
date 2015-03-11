@@ -4,14 +4,14 @@
     @author   Adafruit Industries
 	@license  BSD (see license.txt)
 	
-	SPI Driver for NXP's PN532 NFC/13.56MHz RFID Transceiver
+	Driver for NXP's PN532 NFC/13.56MHz RFID Transceiver
 
 	This is a library for the Adafruit PN532 NFC/RFID breakout boards
 	This library works with the Adafruit NFC breakout 
 	----> https://www.adafruit.com/products/364
 	
 	Check out the links above for our tutorials and wiring diagrams 
-	These chips use SPI to communicate, 4 required to interface
+	These chips use SPI or I2C to communicate.
 	
 	Adafruit invests time and resources providing this open source code, 
 	please support Adafruit and open-source hardware by purchasing 
@@ -19,6 +19,8 @@
 
 
 	@section  HISTORY
+
+    v2.0 - Refactored to add I2C support from Adafruit_NFCShield_I2C library.
 
     v1.4 - Added setPassiveActivationRetries()
 	
@@ -45,6 +47,13 @@
  #include "WProgram.h"
 #endif
 
+#include <Wire.h>
+#if defined(__AVR__) || defined(__i386__) //compatibility with Intel Galileo
+ #define WIRE Wire
+#else // Arduino Due
+ #define WIRE Wire1
+#endif
+
 #include "Adafruit_PN532.h"
 
 byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
@@ -63,7 +72,37 @@ byte pn532_packetbuffer[PN532_PACKBUFFSIZ];
 
 /**************************************************************************/
 /*! 
-    @brief  Instantiates a new PN532 class
+    @brief  Sends a single byte via I2C
+
+    @param  x    The byte to send
+*/
+/**************************************************************************/
+static inline void i2c_send(uint8_t x) 
+{
+  #if ARDUINO >= 100
+    WIRE.write((uint8_t)x);
+  #else
+    WIRE.send(x);
+  #endif
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Reads a single byte via I2C
+*/
+/**************************************************************************/
+static inline uint8_t i2c_recv(void) 
+{
+  #if ARDUINO >= 100
+    return WIRE.read();
+  #else
+    return WIRE.receive();
+  #endif
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Instantiates a new PN532 class using SPI.
 
     @param  clk       SPI clock pin (SCK)
     @param  miso      SPI MISO pin 
@@ -71,12 +110,15 @@ byte pn532_packetbuffer[PN532_PACKBUFFSIZ];
     @param  ss        SPI chip select pin (CS/SSEL)
 */
 /**************************************************************************/
-Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss) {
-  _clk = clk;
-  _miso = miso;
-  _mosi = mosi;
-  _ss = ss;
-
+Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss): 
+  _clk(clk),
+  _miso(miso),
+  _mosi(mosi),
+  _ss(ss),
+  _irq(0),
+  _reset(0),
+  _usingSPI(true)
+{
   pinMode(_ss, OUTPUT);
   pinMode(_clk, OUTPUT);
   pinMode(_mosi, OUTPUT);
@@ -85,19 +127,53 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t 
 
 /**************************************************************************/
 /*! 
+    @brief  Instantiates a new PN532 class using I2C.
+
+    @param  irq       Location of the IRQ pin
+    @param  reset     Location of the RSTPD_N pin
+*/
+/**************************************************************************/
+Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset): 
+  _clk(0),
+  _miso(0),
+  _mosi(0),
+  _ss(0),
+  _irq(irq),
+  _reset(reset),
+  _usingSPI(false)
+{
+  pinMode(_irq, INPUT);
+  pinMode(_reset, OUTPUT);
+}
+
+/**************************************************************************/
+/*! 
     @brief  Setups the HW
 */
 /**************************************************************************/
 void Adafruit_PN532::begin() {
-  digitalWrite(_ss, LOW);
+  if (_usingSPI) {
+    // SPI initialization.
+    digitalWrite(_ss, LOW);
   
-  delay(1000);
+    delay(1000);
 
-  // not exactly sure why but we have to send a dummy command to get synced up
-  pn532_packetbuffer[0] = PN532_COMMAND_GETFIRMWAREVERSION;
-  sendCommandCheckAck(pn532_packetbuffer, 1);
+    // not exactly sure why but we have to send a dummy command to get synced up
+    pn532_packetbuffer[0] = PN532_COMMAND_GETFIRMWAREVERSION;
+    sendCommandCheckAck(pn532_packetbuffer, 1);
 
-  // ignore response!
+    // ignore response!
+  }
+  else {
+    // I2C initialization.
+    WIRE.begin();
+
+    // Reset the PN532  
+    digitalWrite(_reset, HIGH);
+    digitalWrite(_reset, LOW);
+    delay(400);
+    digitalWrite(_reset, HIGH);
+  }
 }
  
 /**************************************************************************/
@@ -113,17 +189,17 @@ void Adafruit_PN532::PrintHex(const byte * data, const uint32_t numBytes)
   uint32_t szPos;
   for (szPos=0; szPos < numBytes; szPos++) 
   {
-    Serial.print("0x");
+    Serial.print(F("0x"));
     // Append leading 0 for small values
     if (data[szPos] <= 0xF)
-      Serial.print("0");
-    Serial.print(data[szPos], HEX);
+      Serial.print(F("0"));
+    Serial.print(data[szPos]&0xff, HEX);
     if ((numBytes > 1) && (szPos != numBytes - 1))
     {
-      Serial.print(" ");
+      Serial.print(F(" "));
     }
   }
-  Serial.println("");
+  Serial.println();
 }
 
 /**************************************************************************/
@@ -144,22 +220,22 @@ void Adafruit_PN532::PrintHexChar(const byte * data, const uint32_t numBytes)
   {
     // Append leading 0 for small values
     if (data[szPos] <= 0xF)
-      Serial.print("0");
+      Serial.print(F("0"));
     Serial.print(data[szPos], HEX);
     if ((numBytes > 1) && (szPos != numBytes - 1))
     {
-      Serial.print(" ");
+      Serial.print(F(" "));
     }
   }
-  Serial.print("  ");
+  Serial.print(F("  "));
   for (szPos=0; szPos < numBytes; szPos++) 
   {
     if (data[szPos] <= 0x1F)
-      Serial.print(".");
+      Serial.print(F("."));
     else
-      Serial.print(data[szPos]);
+      Serial.print((char)data[szPos]);
   }
-  Serial.println("");
+  Serial.println();
 }
  
 /**************************************************************************/
@@ -178,20 +254,24 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
     return 0;
   
   // read data packet
-  readspidata(pn532_packetbuffer, 12);
+  readdata(pn532_packetbuffer, 12);
   
   // check some basic stuff
   if (0 != strncmp((char *)pn532_packetbuffer, (char *)pn532response_firmwarevers, 6)) {
+    #ifdef PN532DEBUG
+      Serial.println(F("Firmware doesn't match!"));
+    #endif
     return 0;
   }
   
-  response = pn532_packetbuffer[6];
+  int offset = _usingSPI ? 6 : 7;  // Skip a response byte when using I2C to ignore extra data.
+  response = pn532_packetbuffer[offset++];
   response <<= 8;
-  response |= pn532_packetbuffer[7];
+  response |= pn532_packetbuffer[offset++];
   response <<= 8;
-  response |= pn532_packetbuffer[8];
+  response |= pn532_packetbuffer[offset++];
   response <<= 8;
-  response |= pn532_packetbuffer[9];
+  response |= pn532_packetbuffer[offset++];
 
   return response;
 }
@@ -210,36 +290,37 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
 */
 /**************************************************************************/
 // default timeout of one second
-boolean Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout) {
+bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout) {
   uint16_t timer = 0;
   
   // write the command
-  spiwritecommand(cmd, cmdlen);
+  writecommand(cmd, cmdlen);
   
   // Wait for chip to say its ready!
-  while (readspistatus() != PN532_SPI_READY) {
-    if (timeout != 0) {
-      timer+=10;
-      if (timer > timeout)  
-        return false;
-    }
-    delay(10);
-  }
-  
-  // read acknowledgement
-  if (!spi_readack()) {
+  if (!waitready(timeout)) {
     return false;
   }
-  
-  timer = 0;
-  // Wait for chip to say its ready!
-  while (readspistatus() != PN532_SPI_READY) {
-    if (timeout != 0) {
-      timer+=10;
-      if (timer > timeout)  
-        return false;
+
+  #ifdef PN532DEBUG
+    if (!_usingSPI) {
+      Serial.println(F("IRQ received"));
     }
-    delay(10);
+  #endif
+  
+  // read acknowledgement
+  if (!readack()) {
+    #ifdef PN532DEBUG
+      Serial.println(F("No ACK frame received!"));
+    #endif
+    return false;
+  }
+
+  // For SPI only wait for the chip to be ready again.
+  // This is unnecessary with I2C.
+  if (_usingSPI) {
+    if (!waitready(timeout)) {
+      return false;
+    }
   }
   
   return true; // ack'd command
@@ -266,7 +347,7 @@ boolean Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16
     @returns 1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
-boolean Adafruit_PN532::writeGPIO(uint8_t pinstate) {
+bool Adafruit_PN532::writeGPIO(uint8_t pinstate) {
   uint8_t errorbit;
 
   // Make sure pinstate does not try to toggle P32 or P34
@@ -278,7 +359,7 @@ boolean Adafruit_PN532::writeGPIO(uint8_t pinstate) {
   pn532_packetbuffer[2] = 0x00;    // P7 GPIO Pins (not used ... taken by SPI)
 
   #ifdef PN532DEBUG
-    Serial.print("Writing P3 GPIO: "); Serial.println(pn532_packetbuffer[1], HEX);
+    Serial.print(F("Writing P3 GPIO: ")); Serial.println(pn532_packetbuffer[1], HEX);
   #endif
 
   // Send the WRITEGPIO command (0x0E)  
@@ -286,15 +367,16 @@ boolean Adafruit_PN532::writeGPIO(uint8_t pinstate) {
     return 0x0;
   
   // Read response packet (00 FF PLEN PLENCHECKSUM D5 CMD+1(0x0F) DATACHECKSUM 00)
-  readspidata(pn532_packetbuffer, 8);
+  readdata(pn532_packetbuffer, 8);
 
   #ifdef PN532DEBUG
-    Serial.print("Received: ");
+    Serial.print(F("Received: "));
     PrintHex(pn532_packetbuffer, 8);
-    Serial.println("");
+    Serial.println();
   #endif  
   
-  return  (pn532_packetbuffer[5] == 0x0F);
+  int offset = _usingSPI ? 5 : 6;
+  return  (pn532_packetbuffer[offset] == 0x0F);
 }
 
 /**************************************************************************/
@@ -319,41 +401,43 @@ uint8_t Adafruit_PN532::readGPIO(void) {
     return 0x0;
   
   // Read response packet (00 FF PLEN PLENCHECKSUM D5 CMD+1(0x0D) P3 P7 IO1 DATACHECKSUM 00)
-  readspidata(pn532_packetbuffer, 11);
+  readdata(pn532_packetbuffer, 11);
 
   /* READGPIO response should be in the following format:
   
     byte            Description
     -------------   ------------------------------------------
-    b0..5           Frame header and preamble
+    b0..5           Frame header and preamble (with I2C there is an extra 0x00)
     b6              P3 GPIO Pins
     b7              P7 GPIO Pins (not used ... taken by SPI)
     b8              Interface Mode Pins (not used ... bus select pins) 
     b9..10          checksum */
+
+  int p3offset = _usingSPI ? 6 : 7;
   
   #ifdef PN532DEBUG
-    Serial.print("Received: ");
+    Serial.print(F("Received: "));
     PrintHex(pn532_packetbuffer, 11);
-    Serial.println("");
-    Serial.print("P3 GPIO: 0x"); Serial.println(pn532_packetbuffer[6], HEX);
-    Serial.print("P7 GPIO: 0x"); Serial.println(pn532_packetbuffer[7], HEX);
-    Serial.print("IO GPIO: 0x"); Serial.println(pn532_packetbuffer[8], HEX);
+    Serial.println();
+    Serial.print(F("P3 GPIO: 0x")); Serial.println(pn532_packetbuffer[p3offset],   HEX);
+    Serial.print(F("P7 GPIO: 0x")); Serial.println(pn532_packetbuffer[p3offset+1], HEX);
+    Serial.print(F("IO GPIO: 0x")); Serial.println(pn532_packetbuffer[p3offset+2], HEX);
     // Note: You can use the IO GPIO value to detect the serial bus being used
-    switch(pn532_packetbuffer[8])
+    switch(pn532_packetbuffer[p3offset+2])
     {
       case 0x00:    // Using UART
-        Serial.println("Using UART (IO = 0x00)");
+        Serial.println(F("Using UART (IO = 0x00)"));
         break;
       case 0x01:    // Using I2C 
-        Serial.println("Using I2C (IO = 0x01)");
+        Serial.println(F("Using I2C (IO = 0x01)"));
         break;
       case 0x02:    // Using SPI
-        Serial.println("Using SPI (IO = 0x02)");
+        Serial.println(F("Using SPI (IO = 0x02)"));
         break;
     }
   #endif
 
-  return pn532_packetbuffer[6];
+  return pn532_packetbuffer[p3offset];
 }
 
 /**************************************************************************/
@@ -361,19 +445,20 @@ uint8_t Adafruit_PN532::readGPIO(void) {
     @brief  Configures the SAM (Secure Access Module)
 */
 /**************************************************************************/
-boolean Adafruit_PN532::SAMConfig(void) {
+bool Adafruit_PN532::SAMConfig(void) {
   pn532_packetbuffer[0] = PN532_COMMAND_SAMCONFIGURATION;
   pn532_packetbuffer[1] = 0x01; // normal mode;
   pn532_packetbuffer[2] = 0x14; // timeout 50ms * 20 = 1 second
   pn532_packetbuffer[3] = 0x01; // use IRQ pin!
   
   if (! sendCommandCheckAck(pn532_packetbuffer, 4))
-     return false;
+    return false;
 
   // read data packet
-  readspidata(pn532_packetbuffer, 8);
+  readdata(pn532_packetbuffer, 8);
   
-  return  (pn532_packetbuffer[5] == 0x15);
+  int offset = _usingSPI ? 5 : 6;
+  return  (pn532_packetbuffer[offset] == 0x15);
 }
 
 /**************************************************************************/
@@ -386,16 +471,16 @@ boolean Adafruit_PN532::SAMConfig(void) {
     @returns 1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
-boolean Adafruit_PN532::setPassiveActivationRetries(uint8_t maxRetries) {
+bool Adafruit_PN532::setPassiveActivationRetries(uint8_t maxRetries) {
   pn532_packetbuffer[0] = PN532_COMMAND_RFCONFIGURATION;
   pn532_packetbuffer[1] = 5;    // Config item 5 (MaxRetries)
   pn532_packetbuffer[2] = 0xFF; // MxRtyATR (default = 0xFF)
   pn532_packetbuffer[3] = 0x01; // MxRtyPSL (default = 0x01)
   pn532_packetbuffer[4] = maxRetries;
 
-#ifdef MIFAREDEBUG
-  Serial.print("Setting MxRtyPassiveActivation to "); Serial.print(maxRetries, DEC); Serial.println(" ");
-#endif
+  #ifdef MIFAREDEBUG
+    Serial.print(F("Setting MxRtyPassiveActivation to ")); Serial.print(maxRetries, DEC); Serial.println(F(" "));
+  #endif
   
   if (! sendCommandCheckAck(pn532_packetbuffer, 5))
     return 0x0;  // no ACK
@@ -418,16 +503,34 @@ boolean Adafruit_PN532::setPassiveActivationRetries(uint8_t maxRetries) {
     @returns 1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
-boolean Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength) {
+bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout) {
   pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
   pn532_packetbuffer[1] = 1;  // max 1 cards at once (we can set this to 2 later)
   pn532_packetbuffer[2] = cardbaudrate;
   
-  if (! sendCommandCheckAck(pn532_packetbuffer, 3))
+  if (!sendCommandCheckAck(pn532_packetbuffer, 3, timeout))
+  {
+    #ifdef PN532DEBUG
+      Serial.println(F("No card(s) read"));
+    #endif
     return 0x0;  // no cards read
+  }
+
+  // wait for a card to enter the field (only possible with I2C)
+  if (!_usingSPI) {
+    #ifdef PN532DEBUG
+      Serial.println(F("Waiting for IRQ (indicates card presence)"));
+    #endif
+    if (!waitready(timeout)) {
+      #ifdef PN532DEBUG
+        Serial.println(F("IRQ Timeout"));
+      #endif
+      return 0x0;
+    }
+  }
   
   // read data packet
-  readspidata(pn532_packetbuffer, 20);
+  readdata(pn532_packetbuffer, 20);
   // check some basic stuff
 
   /* ISO14443A card response should be in the following format:
@@ -442,37 +545,191 @@ boolean Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid,
     b12             NFCID Length
     b13..NFCIDLen   NFCID                                      */
   
-#ifdef MIFAREDEBUG
-    Serial.print("Found "); Serial.print(pn532_packetbuffer[7], DEC); Serial.println(" tags");
-#endif
+  #ifdef MIFAREDEBUG
+    Serial.print(F("Found ")); Serial.print(pn532_packetbuffer[7], DEC); Serial.println(F(" tags"));
+  #endif
   if (pn532_packetbuffer[7] != 1) 
     return 0;
     
   uint16_t sens_res = pn532_packetbuffer[9];
   sens_res <<= 8;
   sens_res |= pn532_packetbuffer[10];
-#ifdef MIFAREDEBUG
-    Serial.print("ATQA: 0x");  Serial.println(sens_res, HEX); 
-    Serial.print("SAK: 0x");  Serial.println(pn532_packetbuffer[11], HEX); 
-#endif
+  #ifdef MIFAREDEBUG
+    Serial.print(F("ATQA: 0x"));  Serial.println(sens_res, HEX); 
+    Serial.print(F("SAK: 0x"));  Serial.println(pn532_packetbuffer[11], HEX); 
+  #endif
   
   /* Card appears to be Mifare Classic */
   *uidLength = pn532_packetbuffer[12];
-#ifdef MIFAREDEBUG
-    Serial.print("UID:"); 
-#endif
+  #ifdef MIFAREDEBUG
+    Serial.print(F("UID:")); 
+  #endif
   for (uint8_t i=0; i < pn532_packetbuffer[12]; i++) 
   {
     uid[i] = pn532_packetbuffer[13+i];
-#ifdef MIFAREDEBUG
-      Serial.print(" 0x");Serial.print(uid[i], HEX); 
-#endif
+    #ifdef MIFAREDEBUG
+      Serial.print(F(" 0x"));Serial.print(uid[i], HEX); 
+    #endif
   }
-#ifdef MIFAREDEBUG
+  #ifdef MIFAREDEBUG
     Serial.println();
-#endif
+  #endif
 
   return 1;
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Exchanges an APDU with the currently inlisted peer
+
+    @param  send            Pointer to data to send
+    @param  sendLength      Length of the data to send
+    @param  response        Pointer to response data
+    @param  responseLength  Pointer to the response data length
+*/
+/**************************************************************************/
+boolean Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength) {
+  if (sendLength > PN532_PACKBUFFSIZ-2) {
+    #ifdef PN532DEBUG
+      Serial.println(F("APDU length too long for packet buffer"));
+    #endif
+    return false;
+  }
+  uint8_t i;
+  
+  pn532_packetbuffer[0] = 0x40; // PN532_COMMAND_INDATAEXCHANGE;
+  pn532_packetbuffer[1] = _inListedTag;
+  for (i=0; i<sendLength; ++i) {
+    pn532_packetbuffer[i+2] = send[i];
+  }
+  
+  if (!sendCommandCheckAck(pn532_packetbuffer,sendLength+2,1000)) {
+    #ifdef PN532DEBUG
+      Serial.println(F("Could not send ADPU"));
+    #endif
+    return false;
+  }
+
+  if (!waitready(1000)) {
+    #ifdef PN532DEBUG
+      Serial.println(F("Response never received for ADPU..."));
+    #endif
+    return false;
+  }
+
+  readdata(pn532_packetbuffer,sizeof(pn532_packetbuffer));
+  
+  if (pn532_packetbuffer[0] == 0 && pn532_packetbuffer[1] == 0 && pn532_packetbuffer[2] == 0xff) {
+    uint8_t length = pn532_packetbuffer[3];
+    if (pn532_packetbuffer[4]!=(uint8_t)(~length+1)) {
+      #ifdef PN532DEBUG
+        Serial.println(F("Length check invalid"));
+        Serial.println(length,HEX);
+        Serial.println((~length)+1,HEX);
+      #endif
+      return false;
+    }
+    if (pn532_packetbuffer[5]==PN532_PN532TOHOST && pn532_packetbuffer[6]==PN532_RESPONSE_INDATAEXCHANGE) {
+      if ((pn532_packetbuffer[7] & 0x3f)!=0) {
+        #ifdef PN532DEBUG
+          Serial.println(F("Status code indicates an error"));
+        #endif
+        return false;
+      }
+      
+      length -= 3;
+      
+      if (length > *responseLength) {
+        length = *responseLength; // silent truncation...
+      }
+      
+      for (i=0; i<length; ++i) {
+        response[i] = pn532_packetbuffer[8+i];
+      }
+      *responseLength = length;
+      
+      return true;
+    } 
+    else {
+      Serial.print(F("Don't know how to handle this command: "));
+      Serial.println(pn532_packetbuffer[6],HEX);
+      return false;
+    } 
+  } 
+  else {
+    Serial.println(F("Preamble missing"));
+    return false;
+  }
+}
+
+/**************************************************************************/
+/*! 
+    @brief  'InLists' a passive target. PN532 acting as reader/initiator,
+            peer acting as card/responder.
+*/
+/**************************************************************************/
+boolean Adafruit_PN532::inListPassiveTarget() {
+  pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
+  pn532_packetbuffer[1] = 1;
+  pn532_packetbuffer[2] = 0;
+  
+  #ifdef PN532DEBUG 
+    Serial.print(F("About to inList passive target"));
+  #endif
+
+  if (!sendCommandCheckAck(pn532_packetbuffer,3,1000)) {
+    #ifdef PN532DEBUG
+      Serial.println(F("Could not send inlist message"));
+    #endif
+    return false;
+  }
+
+  if (!waitready(30000)) {
+    return false;
+  }
+
+  readdata(pn532_packetbuffer,sizeof(pn532_packetbuffer));
+  
+  if (pn532_packetbuffer[0] == 0 && pn532_packetbuffer[1] == 0 && pn532_packetbuffer[2] == 0xff) {
+    uint8_t length = pn532_packetbuffer[3];
+    if (pn532_packetbuffer[4]!=(uint8_t)(~length+1)) {
+      #ifdef PN532DEBUG
+        Serial.println(F("Length check invalid"));
+        Serial.println(length,HEX);
+        Serial.println((~length)+1,HEX);
+      #endif
+      return false;
+    }
+    if (pn532_packetbuffer[5]==PN532_PN532TOHOST && pn532_packetbuffer[6]==PN532_RESPONSE_INLISTPASSIVETARGET) {
+      if (pn532_packetbuffer[7] != 1) {
+        #ifdef PN532DEBUG
+        Serial.println(F("Unhandled number of targets inlisted"));
+        #endif
+        Serial.println(F("Number of tags inlisted:"));
+        Serial.println(pn532_packetbuffer[7]);
+        return false;
+      }
+      
+      _inListedTag = pn532_packetbuffer[8];
+      Serial.print(F("Tag number: "));
+      Serial.println(_inListedTag);
+      
+      return true;
+    } else {
+      #ifdef PN532DEBUG
+        Serial.print(F("Unexpected response to inlist passive host"));
+      #endif
+      return false;
+    } 
+  } 
+  else {
+    #ifdef PN532DEBUG
+      Serial.println(F("Preamble missing"));
+    #endif
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -537,10 +794,10 @@ uint8_t Adafruit_PN532::mifareclassic_AuthenticateBlock (uint8_t * uid, uint8_t 
   _uidLen = uidLen;  
 
   #ifdef MIFAREDEBUG
-  Serial.print("Trying to authenticate card ");
-  Adafruit_PN532::PrintHex(_uid, _uidLen);
-  Serial.print("Using authentication KEY ");Serial.print(keyNumber ? 'B' : 'A');Serial.print(": ");
-  Adafruit_PN532::PrintHex(_key, 6);
+    Serial.print(F("Trying to authenticate card "));
+    Adafruit_PN532::PrintHex(_uid, _uidLen);
+    Serial.print(F("Using authentication KEY "));Serial.print(keyNumber ? 'B' : 'A');Serial.print(F(": "));
+    Adafruit_PN532::PrintHex(_key, 6);
   #endif
   
   // Prepare the authentication command //
@@ -558,15 +815,16 @@ uint8_t Adafruit_PN532::mifareclassic_AuthenticateBlock (uint8_t * uid, uint8_t 
     return 0;
 
   // Read the response packet
-  readspidata(pn532_packetbuffer, 12);
+  readdata(pn532_packetbuffer, 12);
+
   // check if the response is valid and we are authenticated???
   // for an auth success it should be bytes 5-7: 0xD5 0x41 0x00
   // Mifare auth error is technically byte 7: 0x14 but anything other and 0x00 is not good
   if (pn532_packetbuffer[7] != 0x00)
   {
     #ifdef PN532DEBUG
-    Serial.print("Authentification failed: ");
-    Adafruit_PN532::PrintHexChar(pn532_packetbuffer, 12);
+      Serial.print(F("Authentification failed: "));
+      Adafruit_PN532::PrintHexChar(pn532_packetbuffer, 12);
     #endif
     return 0;
   }
@@ -590,7 +848,7 @@ uint8_t Adafruit_PN532::mifareclassic_AuthenticateBlock (uint8_t * uid, uint8_t 
 uint8_t Adafruit_PN532::mifareclassic_ReadDataBlock (uint8_t blockNumber, uint8_t * data)
 {
   #ifdef MIFAREDEBUG
-  Serial.print("Trying to read 16 bytes from block ");Serial.println(blockNumber);
+    Serial.print(F("Trying to read 16 bytes from block "));Serial.println(blockNumber);
   #endif
   
   /* Prepare the command */
@@ -603,21 +861,21 @@ uint8_t Adafruit_PN532::mifareclassic_ReadDataBlock (uint8_t blockNumber, uint8_
   if (! sendCommandCheckAck(pn532_packetbuffer, 4))
   {
     #ifdef MIFAREDEBUG
-    Serial.println("Failed to receive ACK for read command");
+      Serial.println(F("Failed to receive ACK for read command"));
     #endif
     return 0;
   }
 
   /* Read the response packet */
-  readspidata(pn532_packetbuffer, 26);
+  readdata(pn532_packetbuffer, 26);
 
   /* If byte 8 isn't 0x00 we probably have an error */
   if (pn532_packetbuffer[7] != 0x00)
   {
-    //#ifdef MIFAREDEBUG
-    Serial.println("Unexpected response");
-    Adafruit_PN532::PrintHexChar(pn532_packetbuffer, 26);
-    //#endif
+    #ifdef MIFAREDEBUG
+      Serial.println(F("Unexpected response"));
+      Adafruit_PN532::PrintHexChar(pn532_packetbuffer, 26);
+    #endif
     return 0;
   }
     
@@ -627,7 +885,7 @@ uint8_t Adafruit_PN532::mifareclassic_ReadDataBlock (uint8_t blockNumber, uint8_
 
   /* Display data for debug if requested */
   #ifdef MIFAREDEBUG
-    Serial.print("Block ");
+    Serial.print(F("Block "));
     Serial.println(blockNumber);
     Adafruit_PN532::PrintHexChar(data, 16);
   #endif
@@ -650,7 +908,7 @@ uint8_t Adafruit_PN532::mifareclassic_ReadDataBlock (uint8_t blockNumber, uint8_
 uint8_t Adafruit_PN532::mifareclassic_WriteDataBlock (uint8_t blockNumber, uint8_t * data)
 {
   #ifdef MIFAREDEBUG
-  Serial.print("Trying to write 16 bytes to block ");Serial.println(blockNumber);
+    Serial.print(F("Trying to write 16 bytes to block "));Serial.println(blockNumber);
   #endif
   
   /* Prepare the first command */
@@ -664,14 +922,14 @@ uint8_t Adafruit_PN532::mifareclassic_WriteDataBlock (uint8_t blockNumber, uint8
   if (! sendCommandCheckAck(pn532_packetbuffer, 20))
   {
     #ifdef MIFAREDEBUG
-    Serial.println("Failed to receive ACK for write command");
+      Serial.println(F("Failed to receive ACK for write command"));
     #endif
     return 0;
   }  
   delay(10);
   
   /* Read the response packet */
-  readspidata(pn532_packetbuffer, 26);
+  readdata(pn532_packetbuffer, 26);
 
   return 1;  
 }
@@ -688,6 +946,9 @@ uint8_t Adafruit_PN532::mifareclassic_FormatNDEF (void)
   uint8_t sectorbuffer1[16] = {0x14, 0x01, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1};
   uint8_t sectorbuffer2[16] = {0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1, 0x03, 0xE1};
   uint8_t sectorbuffer3[16] = {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0x78, 0x77, 0x88, 0xC1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+  // Note 0xA0 0xA1 0xA2 0xA3 0xA4 0xA5 must be used for key A
+  // for the MAD sector in NDEF records (sector 0)
 
   // Write block 1 and 2 to the card
   if (!(mifareclassic_WriteDataBlock (1, sectorbuffer1)))
@@ -732,6 +993,9 @@ uint8_t Adafruit_PN532::mifareclassic_WriteNDEFURI (uint8_t sectorNumber, uint8_
   // Make sure the URI payload is between 1 and 38 chars
   if ((len < 1) || (len > 38))
     return 0;
+
+  // Note 0xD3 0xF7 0xD3 0xF7 0xD3 0xF7 must be used for key A
+  // in NDEF records
     
   // Setup the sector buffer (w/pre-formatted TLV wrapper and NDEF message)
   uint8_t sectorbuffer1[16] = {0x00, 0x00, 0x03, len+5, 0xD1, 0x01, len+1, 0x55, uriIdentifier, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -750,7 +1014,7 @@ uint8_t Adafruit_PN532::mifareclassic_WriteNDEFURI (uint8_t sectorNumber, uint8_
     memcpy (sectorbuffer1+9, url, len);
     sectorbuffer2[0] = 0xFE;
   }
-  else if ((len > 7) || (len <= 22))
+  else if ((len > 7) && (len <= 22))
   {
     // Url fits in two blocks
     memcpy (sectorbuffer1+9, url, 7);
@@ -803,13 +1067,13 @@ uint8_t Adafruit_PN532::mifareultralight_ReadPage (uint8_t page, uint8_t * buffe
   if (page >= 64)
   {
     #ifdef MIFAREDEBUG
-    Serial.println("Page value out of range");
+      Serial.println(F("Page value out of range"));
     #endif
     return 0;
   }
 
   #ifdef MIFAREDEBUG
-    Serial.print("Reading page ");Serial.println(page);
+    Serial.print(F("Reading page "));Serial.println(page);
   #endif
 
   /* Prepare the command */
@@ -822,15 +1086,15 @@ uint8_t Adafruit_PN532::mifareultralight_ReadPage (uint8_t page, uint8_t * buffe
   if (! sendCommandCheckAck(pn532_packetbuffer, 4))
   {
     #ifdef MIFAREDEBUG
-    Serial.println("Failed to receive ACK for write command");
+      Serial.println(F("Failed to receive ACK for write command"));
     #endif
     return 0;
   }
   
   /* Read the response packet */
-  readspidata(pn532_packetbuffer, 26);
+  readdata(pn532_packetbuffer, 26);
   #ifdef MIFAREDEBUG
-    Serial.println("Received: ");
+    Serial.println(F("Received: "));
     Adafruit_PN532::PrintHexChar(pn532_packetbuffer, 26);
   #endif
 
@@ -847,7 +1111,7 @@ uint8_t Adafruit_PN532::mifareultralight_ReadPage (uint8_t page, uint8_t * buffe
   else
   {
     #ifdef MIFAREDEBUG
-      Serial.println("Unexpected response reading block: ");
+      Serial.println(F("Unexpected response reading block: "));
       Adafruit_PN532::PrintHexChar(pn532_packetbuffer, 26);
     #endif
     return 0;
@@ -855,7 +1119,7 @@ uint8_t Adafruit_PN532::mifareultralight_ReadPage (uint8_t page, uint8_t * buffe
 
   /* Display data for debug if requested */
   #ifdef MIFAREDEBUG
-    Serial.print("Page ");Serial.print(page);Serial.println(":");
+    Serial.print(F("Page "));Serial.print(page);Serial.println(F(":"));
     Adafruit_PN532::PrintHexChar(buffer, 4);
   #endif
 
@@ -865,70 +1129,130 @@ uint8_t Adafruit_PN532::mifareultralight_ReadPage (uint8_t page, uint8_t * buffe
 
 
 
-/************** high level SPI */
+/************** high level communication functions (handles both I2C and SPI) */
 
 
 /**************************************************************************/
 /*! 
-    @brief  Tries to read the SPI ACK signal
+    @brief  Tries to read the SPI or I2C ACK signal
 */
 /**************************************************************************/
-boolean Adafruit_PN532::spi_readack() {
+bool Adafruit_PN532::readack() {
   uint8_t ackbuff[6];
   
-  readspidata(ackbuff, 6);
+  readdata(ackbuff, 6);
   
   return (0 == strncmp((char *)ackbuff, (char *)pn532ack, 6));
 }
 
-/************** mid level SPI */
 
 /**************************************************************************/
 /*! 
-    @brief  Reads the SPI status register (to know if the PN532 is ready)
+    @brief  Return true if the PN532 is ready with a response.
 */
 /**************************************************************************/
-uint8_t Adafruit_PN532::readspistatus(void) {
-  digitalWrite(_ss, LOW);
-  delay(2); 
-  spiwrite(PN532_SPI_STATREAD);
-  // read byte
-  uint8_t x = spiread();
-  
-  digitalWrite(_ss, HIGH);
-  return x;
+bool Adafruit_PN532::isready() {
+  if (_usingSPI) {
+    // SPI read status and check if ready.
+    digitalWrite(_ss, LOW);
+    delay(2); 
+    spi_write(PN532_SPI_STATREAD);
+    // read byte
+    uint8_t x = spi_read();
+    
+    digitalWrite(_ss, HIGH);
+    // Check if status is ready.
+    return x == PN532_SPI_READY;
+  }
+  else {
+    // I2C check if status is ready by IRQ line being pulled low.
+    uint8_t x = digitalRead(_irq);
+    return x == 0;
+  }
 }
 
 /**************************************************************************/
 /*! 
-    @brief  Reads n bytes of data from the PN532 via SPI
+    @brief  Waits until the PN532 is ready.
+
+    @param  timeout   Timeout before giving up
+*/
+/**************************************************************************/
+bool Adafruit_PN532::waitready(uint16_t timeout) {
+  uint16_t timer = 0;
+  while(!isready()) {
+    if (timeout != 0) {
+      timer += 10;
+      if (timer > timeout) {
+        return false;
+      }
+    }
+    delay(10);
+  }
+  return true;
+}
+
+/**************************************************************************/
+/*! 
+    @brief  Reads n bytes of data from the PN532 via SPI or I2C.
 
     @param  buff      Pointer to the buffer where data will be written
     @param  n         Number of bytes to be read
 */
 /**************************************************************************/
-void Adafruit_PN532::readspidata(uint8_t* buff, uint8_t n) {
-  digitalWrite(_ss, LOW);
-  delay(2); 
-  spiwrite(PN532_SPI_DATAREAD);
+void Adafruit_PN532::readdata(uint8_t* buff, uint8_t n) {
+  if (_usingSPI) {
+    // SPI write.
+    digitalWrite(_ss, LOW);
+    delay(2); 
+    spi_write(PN532_SPI_DATAREAD);
 
-#ifdef PN532DEBUG
-  Serial.print("Reading: ");
-#endif
-  for (uint8_t i=0; i<n; i++) {
-    delay(1);
-    buff[i] = spiread();
-#ifdef PN532DEBUG
-    Serial.print(" 0x");
-    Serial.print(buff[i], HEX);
-#endif
+    #ifdef PN532DEBUG
+      Serial.print(F("Reading: "));
+    #endif
+    for (uint8_t i=0; i<n; i++) {
+      delay(1);
+      buff[i] = spi_read();
+      #ifdef PN532DEBUG
+        Serial.print(F(" 0x"));
+        Serial.print(buff[i], HEX);
+      #endif
+    }
+
+    #ifdef PN532DEBUG
+      Serial.println();
+    #endif
+
+    digitalWrite(_ss, HIGH);
   }
+  else {
+    // I2C write.
+    uint16_t timer = 0;
+    
+    delay(2); 
 
-#ifdef PN532DEBUG
-  Serial.println();
-#endif
-
-  digitalWrite(_ss, HIGH);
+    #ifdef PN532DEBUG
+      Serial.print(F("Reading: "));
+    #endif
+    // Start read (n+1 to take into account leading 0x01 with I2C)
+    WIRE.requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint8_t)(n+2));
+    // Discard the leading 0x01
+    i2c_recv();
+    for (uint8_t i=0; i<n; i++) {
+      delay(1);
+      buff[i] = i2c_recv();
+      #ifdef PN532DEBUG
+        Serial.print(F(" 0x"));
+        Serial.print(buff[i], HEX);
+      #endif
+    }
+    // Discard trailing 0x00 0x00
+    // i2c_recv();
+        
+    #ifdef PN532DEBUG
+      Serial.println();
+    #endif
+  }
 }
 
 /**************************************************************************/
@@ -940,56 +1264,114 @@ void Adafruit_PN532::readspidata(uint8_t* buff, uint8_t n) {
     @param  cmdlen    Command length in bytes 
 */
 /**************************************************************************/
-void Adafruit_PN532::spiwritecommand(uint8_t* cmd, uint8_t cmdlen) {
-  uint8_t checksum;
+void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
+  if (_usingSPI) {
+    // SPI command write.
+    uint8_t checksum;
 
-  cmdlen++;
-  
-#ifdef PN532DEBUG
-  Serial.print("\nSending: ");
-#endif
+    cmdlen++;
+    
+    #ifdef PN532DEBUG
+      Serial.print(F("\nSending: "));
+    #endif
 
-  digitalWrite(_ss, LOW);
-  delay(2);     // or whatever the delay is for waking up the board
-  spiwrite(PN532_SPI_DATAWRITE);
+    digitalWrite(_ss, LOW);
+    delay(2);     // or whatever the delay is for waking up the board
+    spi_write(PN532_SPI_DATAWRITE);
 
-  checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
-  spiwrite(PN532_PREAMBLE);
-  spiwrite(PN532_PREAMBLE);
-  spiwrite(PN532_STARTCODE2);
+    checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
+    spi_write(PN532_PREAMBLE);
+    spi_write(PN532_PREAMBLE);
+    spi_write(PN532_STARTCODE2);
 
-  spiwrite(cmdlen);
-  spiwrite(~cmdlen + 1);
- 
-  spiwrite(PN532_HOSTTOPN532);
-  checksum += PN532_HOSTTOPN532;
+    spi_write(cmdlen);
+    spi_write(~cmdlen + 1);
+   
+    spi_write(PN532_HOSTTOPN532);
+    checksum += PN532_HOSTTOPN532;
 
-#ifdef PN532DEBUG
-  Serial.print(" 0x"); Serial.print(PN532_PREAMBLE, HEX);
-  Serial.print(" 0x"); Serial.print(PN532_PREAMBLE, HEX);
-  Serial.print(" 0x"); Serial.print(PN532_STARTCODE2, HEX);
-  Serial.print(" 0x"); Serial.print(cmdlen, HEX);
-  Serial.print(" 0x"); Serial.print(~cmdlen + 1, HEX);
-  Serial.print(" 0x"); Serial.print(PN532_HOSTTOPN532, HEX);
-#endif
+    #ifdef PN532DEBUG
+      Serial.print(F(" 0x")); Serial.print(PN532_PREAMBLE, HEX);
+      Serial.print(F(" 0x")); Serial.print(PN532_PREAMBLE, HEX);
+      Serial.print(F(" 0x")); Serial.print(PN532_STARTCODE2, HEX);
+      Serial.print(F(" 0x")); Serial.print(cmdlen, HEX);
+      Serial.print(F(" 0x")); Serial.print(~cmdlen + 1, HEX);
+      Serial.print(F(" 0x")); Serial.print(PN532_HOSTTOPN532, HEX);
+    #endif
 
-  for (uint8_t i=0; i<cmdlen-1; i++) {
-   spiwrite(cmd[i]);
-   checksum += cmd[i];
-#ifdef PN532DEBUG
-   Serial.print(" 0x"); Serial.print(cmd[i], HEX);
-#endif
+    for (uint8_t i=0; i<cmdlen-1; i++) {
+      spi_write(cmd[i]);
+      checksum += cmd[i];
+      #ifdef PN532DEBUG
+        Serial.print(F(" 0x")); Serial.print(cmd[i], HEX);
+      #endif
+    }
+    
+    spi_write(~checksum);
+    spi_write(PN532_POSTAMBLE);
+    digitalWrite(_ss, HIGH);
+
+    #ifdef PN532DEBUG
+      Serial.print(F(" 0x")); Serial.print(~checksum, HEX);
+      Serial.print(F(" 0x")); Serial.print(PN532_POSTAMBLE, HEX);
+      Serial.println();
+    #endif
   }
-  
-  spiwrite(~checksum);
-  spiwrite(PN532_POSTAMBLE);
-  digitalWrite(_ss, HIGH);
+  else {
+    // I2C command write.
+    uint8_t checksum;
 
-#ifdef PN532DEBUG
-  Serial.print(" 0x"); Serial.print(~checksum, HEX);
-  Serial.print(" 0x"); Serial.print(PN532_POSTAMBLE, HEX);
-  Serial.println();
-#endif
+    cmdlen++;
+    
+    #ifdef PN532DEBUG
+      Serial.print(F("\nSending: "));
+    #endif
+
+    delay(2);     // or whatever the delay is for waking up the board
+
+    // I2C START
+    WIRE.beginTransmission(PN532_I2C_ADDRESS);
+    checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
+    i2c_send(PN532_PREAMBLE);
+    i2c_send(PN532_PREAMBLE);
+    i2c_send(PN532_STARTCODE2);
+
+    i2c_send(cmdlen);
+    i2c_send(~cmdlen + 1);
+   
+    i2c_send(PN532_HOSTTOPN532);
+    checksum += PN532_HOSTTOPN532;
+
+    #ifdef PN532DEBUG
+      Serial.print(F(" 0x")); Serial.print(PN532_PREAMBLE, HEX);
+      Serial.print(F(" 0x")); Serial.print(PN532_PREAMBLE, HEX);
+      Serial.print(F(" 0x")); Serial.print(PN532_STARTCODE2, HEX);
+      Serial.print(F(" 0x")); Serial.print(cmdlen, HEX);
+      Serial.print(F(" 0x")); Serial.print(~cmdlen + 1, HEX);
+      Serial.print(F(" 0x")); Serial.print(PN532_HOSTTOPN532, HEX);
+    #endif
+
+    for (uint8_t i=0; i<cmdlen-1; i++) {
+      i2c_send(cmd[i]);
+      checksum += cmd[i];
+      #ifdef PN532DEBUG
+        Serial.print(F(" 0x")); Serial.print(cmd[i], HEX);
+      #endif
+    }
+    
+    i2c_send(~checksum);
+    i2c_send(PN532_POSTAMBLE);
+    
+    // I2C STOP
+    WIRE.endTransmission();
+
+    #ifdef PN532DEBUG
+      Serial.print(F(" 0x")); Serial.print(~checksum, HEX);
+      Serial.print(F(" 0x")); Serial.print(PN532_POSTAMBLE, HEX);
+      Serial.println();
+    #endif
+
+  }
 } 
 /************** low level SPI */
 
@@ -1000,7 +1382,7 @@ void Adafruit_PN532::spiwritecommand(uint8_t* cmd, uint8_t cmdlen) {
     @param  c       8-bit command to write to the SPI bus
 */
 /**************************************************************************/
-void Adafruit_PN532::spiwrite(uint8_t c) {
+void Adafruit_PN532::spi_write(uint8_t c) {
   int8_t i;
   digitalWrite(_clk, HIGH);
 
@@ -1022,7 +1404,7 @@ void Adafruit_PN532::spiwrite(uint8_t c) {
     @returns The 8-bit value that was read from the SPI bus
 */
 /**************************************************************************/
-uint8_t Adafruit_PN532::spiread(void) {
+uint8_t Adafruit_PN532::spi_read(void) {
   int8_t i, x;
   x = 0;
   digitalWrite(_clk, HIGH);

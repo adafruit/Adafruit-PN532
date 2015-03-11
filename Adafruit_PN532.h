@@ -10,7 +10,7 @@
 	----> https://www.adafruit.com/products/364
 	
 	Check out the links above for our tutorials and wiring diagrams 
-	These chips use SPI to communicate, 4 required to interface
+  These chips use SPI or I2C to communicate.
 	
 	Adafruit invests time and resources providing this open source code, 
 	please support Adafruit and open-source hardware by purchasing 
@@ -18,12 +18,17 @@
 
 	@section  HISTORY
 
+  v2.0  - Refactored to add I2C support from Adafruit_NFCShield_I2C library.
+
 	v1.1  - Added full command list
           - Added 'verbose' mode flag to constructor to toggle debug output
           - Changed readPassiveTargetID() to return variable length values
 	
 */
 /**************************************************************************/
+
+#ifndef ADAFRUIT_PN532_H
+#define ADAFRUIT_PN532_H
 
 #if ARDUINO >= 100
  #include "Arduino.h"
@@ -37,6 +42,7 @@
 #define PN532_POSTAMBLE                     (0x00)
 
 #define PN532_HOSTTOPN532                   (0xD4)
+#define PN532_PN532TOHOST                   (0xD5)
 
 // PN532 Commands
 #define PN532_COMMAND_DIAGNOSE              (0x00)
@@ -72,12 +78,21 @@
 #define PN532_COMMAND_TGRESPONSETOINITIATOR (0x90)
 #define PN532_COMMAND_TGGETTARGETSTATUS     (0x8A)
 
+#define PN532_RESPONSE_INDATAEXCHANGE       (0x41)
+#define PN532_RESPONSE_INLISTPASSIVETARGET  (0x4B)
+
 #define PN532_WAKEUP                        (0x55)
 
 #define PN532_SPI_STATREAD                  (0x02)
 #define PN532_SPI_DATAWRITE                 (0x01)
 #define PN532_SPI_DATAREAD                  (0x03)
 #define PN532_SPI_READY                     (0x01)
+
+#define PN532_I2C_ADDRESS                   (0x48 >> 1)
+#define PN532_I2C_READBIT                   (0x01)
+#define PN532_I2C_BUSY                      (0x00)
+#define PN532_I2C_READY                     (0x01)
+#define PN532_I2C_READYTIMEOUT              (20)
 
 #define PN532_MIFARE_ISO14443A              (0x00)
 
@@ -140,22 +155,25 @@
 class Adafruit_PN532{
  public:
   Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss);
+  Adafruit_PN532(uint8_t irq, uint8_t reset);
   void begin(void);
   
   // Generic PN532 functions
-  boolean SAMConfig(void);
+  bool     SAMConfig(void);
   uint32_t getFirmwareVersion(void);
-  boolean sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);  
-  boolean writeGPIO(uint8_t pinstate);
-  uint8_t readGPIO(void);
-  boolean setPassiveActivationRetries(uint8_t maxRetries);
+  bool     sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);  
+  bool     writeGPIO(uint8_t pinstate);
+  uint8_t  readGPIO(void);
+  bool     setPassiveActivationRetries(uint8_t maxRetries);
   
   // ISO14443A functions
-  boolean readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength);
+  bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout = 0); //timeout 0 means no timeout - will block forever.
+  bool inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength);
+  bool inListPassiveTarget();
   
   // Mifare Classic functions
-  bool mifareclassic_IsFirstBlock (uint32_t uiBlock);
-  bool mifareclassic_IsTrailerBlock (uint32_t uiBlock);
+  bool    mifareclassic_IsFirstBlock (uint32_t uiBlock);
+  bool    mifareclassic_IsTrailerBlock (uint32_t uiBlock);
   uint8_t mifareclassic_AuthenticateBlock (uint8_t * uid, uint8_t uidLen, uint32_t blockNumber, uint8_t keyNumber, uint8_t * keyData);
   uint8_t mifareclassic_ReadDataBlock (uint8_t blockNumber, uint8_t * data);
   uint8_t mifareclassic_WriteDataBlock (uint8_t blockNumber, uint8_t * data);
@@ -171,14 +189,25 @@ class Adafruit_PN532{
 
  private:
   uint8_t _ss, _clk, _mosi, _miso;
-  uint8_t _uid[7];  // ISO14443A uid
-  uint8_t _uidLen;  // uid len
-  uint8_t _key[6];  // Mifare Classic key
+  uint8_t _irq, _reset;
+  uint8_t _uid[7];      // ISO14443A uid
+  uint8_t _uidLen;      // uid len
+  uint8_t _key[6];      // Mifare Classic key
+  uint8_t _inListedTag; // Tg number of inlisted tag.
+  bool    _usingSPI;    // True if using SPI, false if using I2C.
 
-  boolean spi_readack();
-  uint8_t readspistatus(void);
-  void readspidata(uint8_t* buff, uint8_t n);
-  void spiwritecommand(uint8_t* cmd, uint8_t cmdlen);
-  void spiwrite(uint8_t c);
-  uint8_t spiread(void);
+  // Low level communication functions that handle both SPI and I2C.
+  void readdata(uint8_t* buff, uint8_t n);
+  void writecommand(uint8_t* cmd, uint8_t cmdlen);
+  bool isready();
+  bool waitready(uint16_t timeout);
+  bool readack();
+
+  // SPI-specific functions.
+  void    spi_write(uint8_t c);
+  uint8_t spi_read(void);
+
+  // Note there are i2c_read and i2c_write inline functions defined in the .cpp file.
 };
+
+#endif
