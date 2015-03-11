@@ -3,7 +3,7 @@ This library works with the Adafruit NFC breakout
   ----> https://www.adafruit.com/products/364
  
 Check out the links above for our tutorials and wiring diagrams 
-These chips use SPI to communicate, 4 required to interface
+These chips use I2C or SPI to communicate.
 
 Adafruit invests time and resources providing this open source code, 
 please support Adafruit and open-source hardware by purchasing 
