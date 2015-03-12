@@ -105,6 +105,7 @@
 #define MIFARE_CMD_DECREMENT                (0xC0)
 #define MIFARE_CMD_INCREMENT                (0xC1)
 #define MIFARE_CMD_STORE                    (0xC2)
+#define MIFARE_ULTRALIGHT_CMD_WRITE         (0xA2)
 
 // Prefixes for NDEF Records (to identify record type)
 #define NDEF_URIPREFIX_NONE                 (0x00)
@@ -182,6 +183,7 @@ class Adafruit_PN532{
   
   // Mifare Ultralight functions
   uint8_t mifareultralight_ReadPage (uint8_t page, uint8_t * buffer);
+  uint8_t mifareultralight_WritePage (uint8_t page, uint8_t * data);
   
   // Help functions to display formatted text
   static void PrintHex(const byte * data, const uint32_t numBytes);
