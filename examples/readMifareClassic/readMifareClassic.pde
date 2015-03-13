@@ -32,6 +32,7 @@ products from Adafruit!
 */
 /**************************************************************************/
 #include <Wire.h>
+#include <SPI.h>
 #include <Adafruit_PN532.h>
 
 // If using the breakout with SPI, define the pins for SPI communication.
@@ -50,6 +51,12 @@ products from Adafruit!
 
 // Use this line for a breakout with a SPI connection:
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
+
+// Use this line for a breakout with a hardware SPI connection.  Note that
+// the PN532 SCK, MOSI, and MISO pins need to be connected to the Arduino's
+// hardware SPI SCK, MOSI, and MISO pins.  On an Arduino Uno these are
+// SCK = 13, MOSI = 11, MISO = 12.  The SS line can be any digital IO pin.
+//Adafruit_PN532 nfc(PN532_SS);
 
 // Or use this line for a breakout or shield with an I2C connection:
 //Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
