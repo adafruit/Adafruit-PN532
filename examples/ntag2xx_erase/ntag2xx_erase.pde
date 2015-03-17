@@ -2,10 +2,11 @@
 /*! 
     @file     readntag203.pde
     @author   KTOWN (Adafruit Industries)
-  	@license  BSD (see license.txt)
+    @license  BSD (see license.txt)
 
-    This example will wait for any NTAG203 card or tag, and will attempt
-    to read from it.
+    This example will wait for any NTAG203 or NTAG213 card or tag,
+    and will attempt to erase the user data section of the card (setting
+    all user bytes to 0x00)
 
     This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
     This library works with the Adafruit NFC breakout 
@@ -92,17 +93,32 @@ void loop(void) {
     {
       uint8_t data[32];
       
-      // We probably have an NTAG203 card (though it could be Ultralight as well)
-      Serial.println("Seems to be an NTAG203 tag (7 byte UID)");	  
+      // We probably have an NTAG2xx card (though it could be Ultralight as well)
+      Serial.println("Seems to be an NTAG2xx tag (7 byte UID)");	  
       
-      // NTAG203 cards have 168 bytes of total memory, divided in 42 pages (4 bytes each)
+      // NTAG2x3 cards have 39*4 bytes of user pages (156 user bytes),
+      // starting at page 4 ... larger cards just add pages to the end of
+      // this range:
+      
       // See: http://www.nxp.com/documents/short_data_sheet/NTAG203_SDS.pdf
-      for (uint8_t i = 0; i < 42; i++) 
+
+      // TAG Type       PAGES   USER START    USER STOP
+      // --------       -----   ----------    ---------
+      // NTAG 203       42      4             39
+      // NTAG 213       45      4             39
+      // NTAG 215       135     4             129
+      // NTAG 216       231     4             225      
+
+      Serial.println("");
+      Serial.println("Writing 0x00 0x00 0x00 0x00 to pages 4..29");
+      Serial.println("");
+      for (uint8_t i = 4; i < 39; i++) 
       {
-        success = nfc.mifareultralight_ReadPage(i, data);
+        memset(data, 0, 4);
+        success = nfc.ntag2xx_WritePage(i, data);
         
         // Display the current page number
-        Serial.print("PAGE ");
+        Serial.print("Page ");
         if (i < 10)
         {
           Serial.print("0");
@@ -117,12 +133,11 @@ void loop(void) {
         // Display the results, depending on 'success'
         if (success) 
         {
-          // Dump the page data
-          nfc.PrintHexChar(data, 4);
+          Serial.println("Erased");
         }
         else
         {
-          Serial.println("Unable to read the requested page!");
+          Serial.println("Unable to write to the requested page!");
         }
       }      
     }

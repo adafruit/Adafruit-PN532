@@ -185,6 +185,10 @@ class Adafruit_PN532{
   // Mifare Ultralight functions
   uint8_t mifareultralight_ReadPage (uint8_t page, uint8_t * buffer);
   uint8_t mifareultralight_WritePage (uint8_t page, uint8_t * data);
+
+  // NTAG2xx functions
+  uint8_t ntag2xx_ReadPage (uint8_t page, uint8_t * buffer);
+  uint8_t ntag2xx_WritePage (uint8_t page, uint8_t * data);
   
   // Help functions to display formatted text
   static void PrintHex(const byte * data, const uint32_t numBytes);
