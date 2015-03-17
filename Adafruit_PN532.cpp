@@ -20,6 +20,8 @@
 
 	@section  HISTORY
 
+    v2.1 - Added NTAG2xx helper functions
+    
     v2.0 - Refactored to add I2C support from Adafruit_NFCShield_I2C library.
 
     v1.4 - Added setPassiveActivationRetries()
@@ -1329,7 +1331,7 @@ uint8_t Adafruit_PN532::ntag2xx_WritePage (uint8_t page, uint8_t * data)
   // NTAG 215       135     4             129
   // NTAG 216       231     4             225
 
-  if ((page < 4) | (page > 225))
+  if ((page < 4) || (page > 225))
   {
     #ifdef MIFAREDEBUG
       Serial.println(F("Page value out of range"));
