@@ -7,8 +7,8 @@ MCU               | Tested Works | Doesn't Work | Not Tested  | Notes
 ----------------- | :----------: | :----------: | :---------: | -----
 Atmega328 @ 16MHz |      X       |             |            | 
 Atmega328 @ 12MHz |      X       |             |            | 
-Atmega32u4 @ 16MHz |             |             |     X       | 
-Atmega32u4 @ 8MHz |             |             |     X       | 
+Atmega32u4 @ 16MHz |      X       |             |            | Follow instructions at https://learn.adafruit.com/adafruit-pn532-rfid-nfc/shield-wiring to move pin 2.
+Atmega32u4 @ 8MHz |      X       |             |            | 
 ESP8266           |             |             |     X       | 
 Atmega2560 @ 16MHz |      X       |             |            | 
 ATSAM3X8E         |      X       |             |            | 
