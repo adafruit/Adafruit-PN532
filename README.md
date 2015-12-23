@@ -12,7 +12,42 @@ Atmega32u4 @ 8MHz |             |             |     X       |
 ESP8266           |             |             |     X       | 
 Atmega2560 @ 16MHz |      X       |             |            | 
 ATSAM3X8E         |             |             |     X       | 
-ATSAM21D          |             |             |     X       | 
+ATSAM21D          |             |      X       |            | /Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp: In function &#39;void i2c_send(uint8_t)&#39;:
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:55:15: error: &#39;Wire1&#39; was not declared in this scope
+  #define WIRE Wire1
+               ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:90:5: note: in expansion of macro &#39;WIRE&#39;
+     WIRE.write((uint8_t)x);
+     ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp: In function &#39;uint8_t i2c_recv()&#39;:
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:55:15: error: &#39;Wire1&#39; was not declared in this scope
+  #define WIRE Wire1
+               ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:104:12: note: in expansion of macro &#39;WIRE&#39;
+     return WIRE.read();
+            ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp: In member function &#39;void Adafruit_PN532::begin()&#39;:
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:55:15: error: &#39;Wire1&#39; was not declared in this scope
+  #define WIRE Wire1
+               ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:213:5: note: in expansion of macro &#39;WIRE&#39;
+     WIRE.begin();
+     ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp: In member function &#39;void Adafruit_PN532::readdata(uint8_t*, uint8_t)&#39;:
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:55:15: error: &#39;Wire1&#39; was not declared in this scope
+  #define WIRE Wire1
+               ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:1600:5: note: in expansion of macro &#39;WIRE&#39;
+     WIRE.requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint8_t)(n+2));
+     ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp: In member function &#39;void Adafruit_PN532::writecommand(uint8_t*, uint8_t)&#39;:
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:55:15: error: &#39;Wire1&#39; was not declared in this scope
+  #define WIRE Wire1
+               ^
+/Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:1701:5: note: in expansion of macro &#39;WIRE&#39;
+     WIRE.beginTransmission(PN532_I2C_ADDRESS);
+     ^
+Error compiling.
 ATtiny85 @ 16MHz  |             |             |     X       | 
 ATtiny85 @ 8MHz   |             |             |     X       | 
 
