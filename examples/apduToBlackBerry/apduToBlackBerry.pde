@@ -63,6 +63,9 @@ void showColor() {
 }
 
 void setup() {
+  #ifndef ESP8266
+    while (!Serial); // for Leonardo/Micro/Zero
+  #endif
   Serial.begin(115200);
 
   pinMode(R_PIN,OUTPUT);

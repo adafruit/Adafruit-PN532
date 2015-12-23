@@ -71,6 +71,9 @@ Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 static const uint8_t KEY_DEFAULT_KEYAB[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 void setup(void) {
+  #ifndef ESP8266
+    while (!Serial); // for Leonardo/Micro/Zero
+  #endif
   Serial.begin(115200);
   Serial.println("Looking for PN532...");
 

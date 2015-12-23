@@ -54,6 +54,9 @@ Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 //Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 
 void setup(void) {
+  #ifndef ESP8266
+    while (!Serial); // for Leonardo/Micro/Zero
+  #endif
   // has to be fast to dump the entire memory contents!
   Serial.begin(115200);
   Serial.println("Looking for PN532...");
