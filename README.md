@@ -11,7 +11,7 @@ Atmega32u4 @ 16MHz |             |             |     X       |
 Atmega32u4 @ 8MHz |             |             |     X       | 
 ESP8266           |             |             |     X       | 
 Atmega2560 @ 16MHz |      X       |             |            | 
-ATSAM3X8E         |             |             |     X       | 
+ATSAM3X8E         |      X       |             |            | 
 ATSAM21D          |             |      X       |            | /Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp: In function &#39;void i2c_send(uint8_t)&#39;:
 /Users/james/Documents/Arduino/libraries/Adafruit_PN532/Adafruit_PN532.cpp:55:15: error: &#39;Wire1&#39; was not declared in this scope
   #define WIRE Wire1
