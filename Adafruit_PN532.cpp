@@ -305,9 +305,9 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
 
   // check some basic stuff
   if (0 != strncmp((char *)pn532_packetbuffer, (char *)pn532response_firmwarevers, 6)) {
-    //#ifdef PN532DEBUG
+    #ifdef PN532DEBUG
       Serial.println(F("Firmware doesn't match!"));
-    //#endif
+    #endif
     return 0;
   }
 
