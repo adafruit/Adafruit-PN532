@@ -69,6 +69,9 @@ uint8_t ndefprefix = NDEF_URIPREFIX_HTTP_WWWDOT;
 //uint8_t ndefprefix = NDEF_URIPREFIX_TEL;
 
 void setup(void) {
+  #ifndef ESP8266
+    while (!Serial); // for Leonardo/Micro/Zero
+  #endif
   Serial.begin(115200);
   Serial.println("Hello!");
 
