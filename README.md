@@ -12,7 +12,7 @@ Atmega32u4 @ 8MHz |      X       |             |            | SPI &amp; I2C Work
 ESP8266           |             |      X       |            | SPI only, I2C clock stretching not supported
 Atmega2560 @ 16MHz |      X       |             |            | SPI &amp; I2C Works
 ATSAM3X8E         |      X       |             |            | 
-ATSAM21D          |             |      X       |            | Likely Zero doesn&#39;t have clock stretching support (unclear)
+ATSAM21D          |             |      X       |            | SPI only, I2C clock stretching not supported
 ATtiny85 @ 16MHz  |             |             |     X       | 
 ATtiny85 @ 8MHz   |             |             |     X       | 
 
