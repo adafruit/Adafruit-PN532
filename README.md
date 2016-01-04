@@ -9,7 +9,7 @@ Atmega328 @ 16MHz |      X       |             |            |
 Atmega328 @ 12MHz |      X       |             |            | 
 Atmega32u4 @ 16MHz |      X       |             |            | Follow instructions at https://learn.adafruit.com/adafruit-pn532-rfid-nfc/shield-wiring#using-with-the-arduino-leonardo-and-yun to move pin 2.
 Atmega32u4 @ 8MHz |      X       |             |            | 
-ESP8266           |             |             |     X       | 
+ESP8266           |             |      X       |            | 
 Atmega2560 @ 16MHz |      X       |             |            | 
 ATSAM3X8E         |      X       |             |            | 
 ATSAM21D          |             |      X       |            | Likely Zero doesn&#39;t have clock stretching support (unclear)
