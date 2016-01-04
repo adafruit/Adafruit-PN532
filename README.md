@@ -5,12 +5,12 @@
 
 MCU               | Tested Works | Doesn't Work | Not Tested  | Notes
 ----------------- | :----------: | :----------: | :---------: | -----
-Atmega328 @ 16MHz |      X       |             |            | 
-Atmega328 @ 12MHz |      X       |             |            | 
+Atmega328 @ 16MHz |      X       |             |            | SPI &amp; I2C Works
+Atmega328 @ 12MHz |      X       |             |            | SPI &amp; I2C Works
 Atmega32u4 @ 16MHz |      X       |             |            | Follow instructions at https://learn.adafruit.com/adafruit-pn532-rfid-nfc/shield-wiring#using-with-the-arduino-leonardo-and-yun to move pin 2.
-Atmega32u4 @ 8MHz |      X       |             |            | 
+Atmega32u4 @ 8MHz |      X       |             |            | SPI &amp; I2C Works
 ESP8266           |             |      X       |            | SPI only, I2C clock stretching not supported
-Atmega2560 @ 16MHz |      X       |             |            | 
+Atmega2560 @ 16MHz |      X       |             |            | SPI &amp; I2C Works
 ATSAM3X8E         |      X       |             |            | 
 ATSAM21D          |             |      X       |            | Likely Zero doesn&#39;t have clock stretching support (unclear)
 ATtiny85 @ 16MHz  |             |             |     X       | 
