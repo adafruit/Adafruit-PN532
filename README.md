@@ -11,7 +11,7 @@ Atmega32u4 @ 16MHz |      X       |             |            | Follow instructio
 Atmega32u4 @ 8MHz |      X       |             |            | SPI &amp; I2C Works
 ESP8266           |             |      X       |            | SPI only, I2C clock stretching not supported
 Atmega2560 @ 16MHz |      X       |             |            | SPI &amp; I2C Works
-ATSAM3X8E         |      X       |             |            | 
+ATSAM3X8E         |      X       |             |            | SPI &amp; I2C Works
 ATSAM21D          |             |      X       |            | SPI only, I2C clock stretching not supported. Use programming port.
 ATtiny85 @ 16MHz  |             |             |     X       | 
 ATtiny85 @ 8MHz   |             |             |     X       | 
