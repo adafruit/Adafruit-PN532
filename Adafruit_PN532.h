@@ -190,7 +190,7 @@ class Adafruit_PN532{
   uint8_t ntag2xx_ReadPage (uint8_t page, uint8_t * buffer);
   uint8_t ntag2xx_WritePage (uint8_t page, uint8_t * data);
   uint8_t ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url, uint8_t dataLen);
-  
+  uint8_t ntag2xx_Authenticate (uint8_t * pwd);
   // Help functions to display formatted text
   static void PrintHex(const byte * data, const uint32_t numBytes);
   static void PrintHexChar(const byte * pbtData, const uint32_t numBytes);
