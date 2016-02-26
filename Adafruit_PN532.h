@@ -24,6 +24,9 @@
           - Added 'verbose' mode flag to constructor to toggle debug output
           - Changed readPassiveTargetID() to return variable length values
 	
+	@reference
+	user manual for PN532 -- http://www.nxp.com/documents/user_manual/141520.pdf
+	resource used for adding Felica support -- http://lantaukwcounter.blogspot.com/2015/11/reading-octopus-card-ids-felica-with.html
 */
 /**************************************************************************/
 
@@ -95,6 +98,11 @@
 #define PN532_I2C_READYTIMEOUT              (20)
 
 #define PN532_MIFARE_ISO14443A              (0x00)
+#define PN532_FELICA_212                    (0x01)
+#define PN532_FELICA_424                    (0x02)
+//untested below
+//#define PN532_MIFARE_ISO14443-3B            (0x03)
+//#define PN532_JEWEL                         (0x04)
 
 // Mifare Commands
 #define MIFARE_CMD_AUTH_A                   (0x60)
@@ -153,6 +161,8 @@
 #define PN532_GPIO_P34                      (4)
 #define PN532_GPIO_P35                      (5)
 
+//#define PN532DEBUG                          (1)
+
 class Adafruit_PN532{
  public:
   Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss);  // Software SPI
@@ -190,6 +200,9 @@ class Adafruit_PN532{
   uint8_t ntag2xx_ReadPage (uint8_t page, uint8_t * buffer);
   uint8_t ntag2xx_WritePage (uint8_t page, uint8_t * data);
   uint8_t ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url, uint8_t dataLen);
+  
+  // Felica functions
+  // coming soon
   
   // Help functions to display formatted text
   static void PrintHex(const byte * data, const uint32_t numBytes);
