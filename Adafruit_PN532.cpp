@@ -49,7 +49,7 @@
 #endif
 
 #include <Wire.h>
-#if defined(__AVR__) || defined(__i386__) || defined(ARDUINO_ARCH_SAMD) || defined(ESP8266) //compatibility with Intel Galileo
+#if defined(__AVR__) || defined(CORE_TEENSY) || defined(__i386__) || defined(ARDUINO_ARCH_SAMD) || defined(ESP8266) //compatibility with Intel Galileo
  #define WIRE Wire
 #else // Arduino Due
  #define WIRE Wire1
