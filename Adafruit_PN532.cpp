@@ -1845,16 +1845,16 @@ void Adafruit_PN532::spi_write(uint8_t c) {
   else {
     // Software SPI write.
     int8_t i;
-    digitalWrite(_clk, HIGH);
+	digitalWrite(_clk, LOW);
 
     for (i=0; i<8; i++) {
-      digitalWrite(_clk, LOW);
       if (c & _BV(i)) {
         digitalWrite(_mosi, HIGH);
       } else {
         digitalWrite(_mosi, LOW);
       }
       digitalWrite(_clk, HIGH);
+      digitalWrite(_clk, LOW);
     }
   }
 }
@@ -1876,14 +1876,14 @@ uint8_t Adafruit_PN532::spi_read(void) {
   }
   else {
     // Software SPI read.
-    digitalWrite(_clk, HIGH);
+	digitalWrite(_clk, LOW);
 
     for (i=0; i<8; i++) {
+      digitalWrite(_clk, HIGH);
       if (digitalRead(_miso)) {
         x |= _BV(i);
       }
       digitalWrite(_clk, LOW);
-      digitalWrite(_clk, HIGH);
     }
   }
 
