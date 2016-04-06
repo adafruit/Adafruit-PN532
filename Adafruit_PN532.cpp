@@ -49,7 +49,7 @@
 #endif
 
 #include <Wire.h>
-#if defined(__AVR__) || defined(__i386__) || defined(ARDUINO_ARCH_SAMD) || defined(ESP8266) //compatibility with Intel Galileo
+#if defined(__AVR__) || defined(__i386__) || defined(ARDUINO_ARCH_SAMD) || defined(ESP8266) || defined(ARDUINO_ARCH_STM32)
  #define WIRE Wire
 #else // Arduino Due
  #define WIRE Wire1
@@ -71,8 +71,11 @@ byte pn532response_firmwarevers[] = {0x00, 0xFF, 0x06, 0xFA, 0xD5, 0x03};
 //#define PN532DEBUGPRINT SerialUSB
 
 // Hardware SPI-specific configuration:
-#define PN532_SPI_SETTING SPISettings(1000000, LSBFIRST, SPI_MODE0)
-#define PN532_SPI_CLOCKDIV SPI_CLOCK_DIV16
+#ifdef SPI_HAS_TRANSACTION
+    #define PN532_SPI_SETTING SPISettings(1000000, LSBFIRST, SPI_MODE0)
+#else
+    #define PN532_SPI_CLOCKDIV SPI_CLOCK_DIV16
+#endif
 
 #define PN532_PACKBUFFSIZ 64
 byte pn532_packetbuffer[PN532_PACKBUFFSIZ];
@@ -189,12 +192,13 @@ void Adafruit_PN532::begin() {
     // SPI initialization
     if (_hardwareSPI) {
       SPI.begin();
-      SPI.setDataMode(SPI_MODE0);
-      SPI.setBitOrder(LSBFIRST);
-      SPI.setClockDivider(PN532_SPI_CLOCKDIV);
 
       #ifdef SPI_HAS_TRANSACTION
         SPI.beginTransaction(PN532_SPI_SETTING);
+      #else
+        SPI.setDataMode(SPI_MODE0);
+        SPI.setBitOrder(LSBFIRST);
+        SPI.setClockDivider(PN532_SPI_CLOCKDIV);
       #endif
     }
     digitalWrite(_ss, LOW);
