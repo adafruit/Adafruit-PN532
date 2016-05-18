@@ -172,6 +172,7 @@ class Adafruit_PN532{
   bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout = 0); //timeout 0 means no timeout - will block forever.
   bool inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength);
   bool inListPassiveTarget();
+  bool TgInitAsTarget();
   
   // Mifare Classic functions
   bool    mifareclassic_IsFirstBlock (uint32_t uiBlock);

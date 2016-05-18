@@ -787,6 +787,47 @@ bool Adafruit_PN532::inListPassiveTarget() {
   return true;
 }
 
+/********************************************************************/
+/*!
+*	@brief  'TgInitAsTarget' is used to configure a PN532 as a tag by the host.
+*
+*/
+/********************************************************************/
+bool Adafruit_PN532::TgInitAsTarget ()  {
+	#ifdef PN532DEBUG
+		PN532DEBUGPRINT.print(F("TgInitAsTarget():");
+	#endif
+
+	// Command for target initialization
+	uint8_t cmd[] = {
+		PN532_COMMAND_TGINITASTARGET,     // 0x8C
+		0x05,               // Mode: PICC only & Passive only
+		0x08, 0x00,         // SENS_RES
+		0x12, 0x34, 0x56,   // NFCID1 (bytes 11,12,13)
+		0x60,               // SEL_RES
+
+		0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,   // FeliCaParams
+		0,0,
+
+		0,0,0,0,0,0,0,0,0,0, // NFCID3t
+
+		0, // length of general bytes
+		0  // length of historical bytes
+	};
+
+	// Send the command
+	if (! sendCommandCheckAck(cmd, sizeof(cmd))) {
+		#ifdef PN532DEBUG
+			PN532DEBUGPRINT.print(F("Failed at sendCommandCheckAck command");
+		#endif
+		return false;
+	}
+	// read data packet
+	readdata(pn532_packetbuffer, sizeof(pn532_packetbuffer));
+	return pn532_packetbuffer[7] == 0x08;   // mode for PICC, DEP and mifare ok
+}
+
 
 /***** Mifare Classic Functions ******/
 
