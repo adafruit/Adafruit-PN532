@@ -173,6 +173,8 @@ class Adafruit_PN532{
   bool inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength);
   bool inListPassiveTarget();
   bool TgInitAsTarget();
+  bool TgGetData(uint8_t * response, uint8_t * responseLength);
+  bool TgSetData(uint8_t * send, uint8_t sendLength);
   
   // Mifare Classic functions
   bool    mifareclassic_IsFirstBlock (uint32_t uiBlock);
