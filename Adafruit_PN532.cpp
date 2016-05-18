@@ -799,7 +799,7 @@ bool Adafruit_PN532::TgInitAsTarget() {
 	PN532_COMMAND_TGINITASTARGET,     // 0x8C
 	0x05,               	// Mode: PICC only & Passive only
 	0x08, 0x00,         	// SENS_RES
-	0x12, 0x34, 0x56,   	// NFCID1 (bytes 11,12,13)
+	0x12, 0x34, 0x56,   	// NFCID1
 	0x60,               	// SEL_RES
 	0,0,0,0,0,0,0,0,0,		// FeliCaParams
 	0,0,0,0,0,0,0,0,0,
@@ -836,9 +836,9 @@ bool Adafruit_PN532::TgInitAsTarget() {
 bool Adafruit_PN532::TgGetData(uint8_t * response, uint8_t * responseLength) {
 
   pn532_packetbuffer[0] = PN532_COMMAND_TGGETDATA;    // 0x86
-  if (!sendCommandCheckAck(pn532_packetbuffer, 1, 5000)) {
+  if (!sendCommandCheckAck(pn532_packetbuffer, 1, 1000)) {
 	#ifdef PN532DEBUG
-      PN532DEBUGPRINT.println(F("sendCommandCheckAck failed"));
+      PN532DEBUGPRINT.println(F("Failed at sendCommandCheckAck"));
     #endif
 	return false;
   }
