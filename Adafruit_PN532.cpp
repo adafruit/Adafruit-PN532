@@ -1638,6 +1638,7 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
   if (_usingSPI) {
     // SPI command write.
     uint8_t checksum;
+    checksum = 0xFF;
 
     cmdlen++;
 
@@ -1652,7 +1653,6 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     delay(2);     // or whatever the delay is for waking up the board
     spi_write(PN532_SPI_DATAWRITE);
 
-    checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
     spi_write(PN532_PREAMBLE);
     spi_write(PN532_PREAMBLE);
     spi_write(PN532_STARTCODE2);
@@ -1707,7 +1707,6 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
 
     // I2C START
     WIRE.beginTransmission(PN532_I2C_ADDRESS);
-    checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
     i2c_send(PN532_PREAMBLE);
     i2c_send(PN532_PREAMBLE);
     i2c_send(PN532_STARTCODE2);
