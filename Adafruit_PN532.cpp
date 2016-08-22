@@ -19,6 +19,9 @@
 
     @section  HISTORY
 
+    v2.2 - Errors in low level PN532 chip access functions fixed.
+           Unexplainable calls of delay() removed.
+
     v2.1 - Added NTAG2xx helper functions
 
     v2.0 - Refactored to add I2C support from Adafruit_NFCShield_I2C library.
@@ -60,7 +63,7 @@
 #include "Adafruit_PN532.h"
 
 byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
-byte pn532response_firmwarevers[] = {0x00, 0xFF, 0x06, 0xFA, 0xD5, 0x03};
+byte pn532response_firmwarevers[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5, 0x03};
 
 // Uncomment these lines to enable debug output for PN532(SPI) and/or MIFARE related code
 // #define PN532DEBUG
@@ -134,10 +137,6 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t 
   _usingSPI(true),
   _hardwareSPI(false)
 {
-  pinMode(_ss, OUTPUT);
-  pinMode(_clk, OUTPUT);
-  pinMode(_mosi, OUTPUT);
-  pinMode(_miso, INPUT);
 }
 
 /**************************************************************************/
@@ -158,8 +157,6 @@ Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset):
   _usingSPI(false),
   _hardwareSPI(false)
 {
-  pinMode(_irq, INPUT);
-  pinMode(_reset, OUTPUT);
 }
 
 /**************************************************************************/
@@ -179,7 +176,6 @@ Adafruit_PN532::Adafruit_PN532(uint8_t ss):
   _usingSPI(true),
   _hardwareSPI(true)
 {
-  pinMode(_ss, OUTPUT);
 }
 
 /**************************************************************************/
@@ -188,9 +184,21 @@ Adafruit_PN532::Adafruit_PN532(uint8_t ss):
 */
 /**************************************************************************/
 void Adafruit_PN532::begin() {
+  // According to AN10609_3 app note from NXP ch.2.5 p.13 and p.23
+  // "How to start the PN532C106"
+  // the chip starts in Low Vbat mode, i.e. in Card Emulation mode
+  // if RF field is present and in Power Down mode otherwise.
+  // IRQ is not functional at this time.
+  // Special sequence should be executed to go into Normal mode.
+  // The sequence depends from the host interface type (SPI or I2C).
+
   if (_usingSPI) {
-    // SPI initialization
+    // SPI interface initialization
     if (_hardwareSPI) {
+      // SS pin configuration
+      digitalWrite(_ss, HIGH);
+      pinMode(_ss, OUTPUT);
+
       SPI.begin();
 
       #ifdef SPI_HAS_TRANSACTION
@@ -201,32 +209,73 @@ void Adafruit_PN532::begin() {
         SPI.setClockDivider(PN532_SPI_CLOCKDIV);
       #endif
     }
-    digitalWrite(_ss, LOW);
-
-    delay(1000);
-
-    // not exactly sure why but we have to send a dummy command to get synced up
-    pn532_packetbuffer[0] = PN532_COMMAND_GETFIRMWAREVERSION;
-    sendCommandCheckAck(pn532_packetbuffer, 1);
-
-    // ignore response!
-
-    digitalWrite(_ss, HIGH);
-    #ifdef SPI_HAS_TRANSACTION
-      if (_hardwareSPI) SPI.endTransaction();
-    #endif
+    else {
+      // Software SPI pins configuration
+      digitalWrite(_ss, HIGH);
+      pinMode(_ss, OUTPUT);
+      digitalWrite(_clk, LOW);
+      pinMode(_clk, OUTPUT);
+      pinMode(_mosi, OUTPUT);
+      pinMode(_miso, INPUT);
+    }
   }
   else {
-    // I2C initialization.
+    // I2C interface initialization.
+    pinMode(_irq, INPUT);
     WIRE.begin();
+  }
 
+  if (_reset) {
     // Reset the PN532
     digitalWrite(_reset, HIGH);
+    pinMode(_reset, OUTPUT);
     digitalWrite(_reset, LOW);
-    delay(400);
+    delay(1);
     digitalWrite(_reset, HIGH);
-    delay(10);  // Small delay required before taking other actions after reset.
-                // See timing diagram on page 209 of the datasheet, section 12.23.
+    delay(2);  // Small delay required before taking other actions after reset.
+               // See timing diagram on page 209 of the datasheet, section 12.23.
+  }
+
+  if (_usingSPI) {
+    // Wakeup from Power Down via SPI:
+    // 1. keep SS low for 1ms
+    // 2. send SAM configuration with parameter Mode = 0x01 (Normal)
+    //    without use of handshake
+    digitalWrite(_ss, LOW);
+    delay(1);
+
+    pn532_packetbuffer[0] = PN532_COMMAND_SAMCONFIGURATION;
+    pn532_packetbuffer[1] = 0x01; // Normal mode
+    pn532_packetbuffer[2] = 0x14; // timeout 50ms * 20 = 1 second - ignored in Normal mode
+    pn532_packetbuffer[3] = 0x01; // use IRQ pin!
+
+    // Write the command
+    writecommand(pn532_packetbuffer, 4);
+
+    // Do not wait IRQ and do not poll RDY bit, just wait reasonable time
+    // Measurements show 0.5 ms, let set it to 2ms
+    delay(2);
+
+    if (!readack()) {
+      #ifdef PN532DEBUG
+        PN532DEBUGPRINT.println(F("No ACK frame received!"));
+      #endif
+    }
+
+    // Do not wait IRQ and do not poll RDY bit, just wait reasonable time
+    // Measurements show 0.9 ms, let set it to 5ms
+    delay(5);
+
+    // read data packet
+    readdata(pn532_packetbuffer, 9);
+  }
+  else {
+    // Wakeup from Power Down via I2C:
+    // 1. Send PN532 I2C address (0x48)
+    // 2. PN532 will stretch SCL about 1ms
+    // To do that just call SAMConfig().
+    // Anyway it is the only possible action at this moment.
+    SAMConfig();
   }
 }
 
@@ -309,17 +358,17 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
   }
 
   // read data packet
-  readdata(pn532_packetbuffer, 12);
+  readdata(pn532_packetbuffer, 13);
 
-  // check some basic stuff
-  if (0 != strncmp((char *)pn532_packetbuffer, (char *)pn532response_firmwarevers, 6)) {
+  // check that beginning of the response match to expected pattern
+  if (0 != memcmp((char *)pn532_packetbuffer, (char *)pn532response_firmwarevers, sizeof(pn532response_firmwarevers))) {
 #ifdef PN532DEBUG
       PN532DEBUGPRINT.println(F("Firmware doesn't match!"));
 #endif
     return 0;
   }
 
-  int offset = _usingSPI ? 6 : 7;  // Skip a response byte when using I2C to ignore extra data.
+  int offset = sizeof(pn532response_firmwarevers);
   response = pn532_packetbuffer[offset++];
   response <<= 8;
   response |= pn532_packetbuffer[offset++];
@@ -370,12 +419,8 @@ bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t 
     return false;
   }
 
-  // For SPI only wait for the chip to be ready again.
-  // This is unnecessary with I2C.
-  if (_usingSPI) {
-    if (!waitready(timeout)) {
-      return false;
-    }
+  if (!waitready(timeout)) {
+    return false;
   }
 
   return true; // ack'd command
@@ -510,7 +555,7 @@ bool Adafruit_PN532::SAMConfig(void) {
     return false;
 
   // read data packet
-  readdata(pn532_packetbuffer, 8);
+  readdata(pn532_packetbuffer, 9);
 
   int offset = _usingSPI ? 5 : 6;
   return  (pn532_packetbuffer[offset] == 0x15);
@@ -585,7 +630,7 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
   }
 
   // read data packet
-  readdata(pn532_packetbuffer, 20);
+  readdata(pn532_packetbuffer, 22);
   // check some basic stuff
 
   /* ISO14443A card response should be in the following format:
@@ -1494,11 +1539,18 @@ uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url,
 */
 /**************************************************************************/
 bool Adafruit_PN532::readack() {
-  uint8_t ackbuff[6];
+  uint8_t ackbuff[sizeof(pn532ack)];
 
-  readdata(ackbuff, 6);
+  readdata(ackbuff, sizeof(ackbuff));
 
-  return (0 == strncmp((char *)ackbuff, (char *)pn532ack, 6));
+  if(0 != memcmp((char *)ackbuff, (char *)pn532ack, sizeof(pn532ack))) {
+#ifdef PN532DEBUG
+   PN532DEBUGPRINT.println(F("No ACK frame received!"));
+#endif
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -1514,7 +1566,6 @@ bool Adafruit_PN532::isready() {
       if (_hardwareSPI) SPI.beginTransaction(PN532_SPI_SETTING);
     #endif
     digitalWrite(_ss, LOW);
-    delay(2);
     spi_write(PN532_SPI_STATREAD);
     // read byte
     uint8_t x = spi_read();
@@ -1545,13 +1596,13 @@ bool Adafruit_PN532::waitready(uint16_t timeout) {
   uint16_t timer = 0;
   while(!isready()) {
     if (timeout != 0) {
-      timer += 10;
+      timer += 1;
       if (timer > timeout) {
         PN532DEBUGPRINT.println("TIMEOUT!");
         return false;
       }
     }
-    delay(10);
+    delay(1);
   }
   return true;
 }
@@ -1566,19 +1617,18 @@ bool Adafruit_PN532::waitready(uint16_t timeout) {
 /**************************************************************************/
 void Adafruit_PN532::readdata(uint8_t* buff, uint8_t n) {
   if (_usingSPI) {
-    // SPI write.
+    // SPI read.
     #ifdef SPI_HAS_TRANSACTION
       if (_hardwareSPI) SPI.beginTransaction(PN532_SPI_SETTING);
     #endif
     digitalWrite(_ss, LOW);
-    delay(2);
+
     spi_write(PN532_SPI_DATAREAD);
 
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.print(F("Reading: "));
     #endif
     for (uint8_t i=0; i<n; i++) {
-      delay(1);
       buff[i] = spi_read();
       #ifdef PN532DEBUG
         PN532DEBUGPRINT.print(F(" 0x"));
@@ -1596,28 +1646,22 @@ void Adafruit_PN532::readdata(uint8_t* buff, uint8_t n) {
     #endif
   }
   else {
-    // I2C write.
-    uint16_t timer = 0;
-
-    delay(2);
+    // I2C read.
 
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.print(F("Reading: "));
     #endif
     // Start read (n+1 to take into account leading 0x01 with I2C)
-    WIRE.requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint8_t)(n+2));
+    WIRE.requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint8_t)(n+1));
     // Discard the leading 0x01
     i2c_recv();
     for (uint8_t i=0; i<n; i++) {
-      delay(1);
       buff[i] = i2c_recv();
       #ifdef PN532DEBUG
         PN532DEBUGPRINT.print(F(" 0x"));
         PN532DEBUGPRINT.print(buff[i], HEX);
       #endif
     }
-    // Discard trailing 0x00 0x00
-    // i2c_recv();
 
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.println();
@@ -1649,7 +1693,7 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
       if (_hardwareSPI) SPI.beginTransaction(PN532_SPI_SETTING);
     #endif
     digitalWrite(_ss, LOW);
-    delay(2);     // or whatever the delay is for waking up the board
+
     spi_write(PN532_SPI_DATAWRITE);
 
     checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
@@ -1702,8 +1746,6 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.print(F("\nSending: "));
     #endif
-
-    delay(2);     // or whatever the delay is for waking up the board
 
     // I2C START
     WIRE.beginTransmission(PN532_I2C_ADDRESS);
@@ -1766,16 +1808,14 @@ void Adafruit_PN532::spi_write(uint8_t c) {
   else {
     // Software SPI write.
     int8_t i;
-    digitalWrite(_clk, HIGH);
-
     for (i=0; i<8; i++) {
-      digitalWrite(_clk, LOW);
       if (c & _BV(i)) {
         digitalWrite(_mosi, HIGH);
       } else {
         digitalWrite(_mosi, LOW);
       }
       digitalWrite(_clk, HIGH);
+      digitalWrite(_clk, LOW);
     }
   }
 }
@@ -1797,14 +1837,12 @@ uint8_t Adafruit_PN532::spi_read(void) {
   }
   else {
     // Software SPI read.
-    digitalWrite(_clk, HIGH);
-
     for (i=0; i<8; i++) {
       if (digitalRead(_miso)) {
         x |= _BV(i);
       }
-      digitalWrite(_clk, LOW);
       digitalWrite(_clk, HIGH);
+      digitalWrite(_clk, LOW);
     }
   }
 
