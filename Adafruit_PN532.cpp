@@ -660,14 +660,14 @@ bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t 
 
   if (!sendCommandCheckAck(pn532_packetbuffer,sendLength+2,1000)) {
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.println(F("Could not send ADPU"));
+      PN532DEBUGPRINT.println(F("Could not send APDU"));
     #endif
     return false;
   }
 
   if (!waitready(1000)) {
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.println(F("Response never received for ADPU..."));
+      PN532DEBUGPRINT.println(F("Response never received for APDU..."));
     #endif
     return false;
   }
