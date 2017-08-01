@@ -1652,8 +1652,8 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     delay(2);     // or whatever the delay is for waking up the board
     spi_write(PN532_SPI_DATAWRITE);
 
-    checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
-    spi_write(PN532_PREAMBLE);
+    checksum = PN532_PREAMBLE + PN532_STARTCODE1 + PN532_STARTCODE2;
+    spi_write(PN532_STARTCODE1);
     spi_write(PN532_PREAMBLE);
     spi_write(PN532_STARTCODE2);
 
@@ -1665,7 +1665,7 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
 
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_STARTCODE1, HEX);
       PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_STARTCODE2, HEX);
       PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmdlen, HEX);
       PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~cmdlen + 1, HEX);
@@ -1707,9 +1707,9 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
 
     // I2C START
     WIRE.beginTransmission(PN532_I2C_ADDRESS);
-    checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
+    checksum = PN532_PREAMBLE + PN532_STARTCODE1 + PN532_STARTCODE2;
     i2c_send(PN532_PREAMBLE);
-    i2c_send(PN532_PREAMBLE);
+    i2c_send(PN532_STARTCODE1);
     i2c_send(PN532_STARTCODE2);
 
     i2c_send(cmdlen);
@@ -1720,7 +1720,7 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
 
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_STARTCODE1, HEX);
       PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_STARTCODE2, HEX);
       PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmdlen, HEX);
       PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~cmdlen + 1, HEX);
