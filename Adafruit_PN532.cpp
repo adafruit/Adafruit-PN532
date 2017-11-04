@@ -19,6 +19,8 @@
 
     @section  HISTORY
 
+    v2.2 - Added support for extended frames
+
     v2.1 - Added NTAG2xx helper functions
 
     v2.0 - Refactored to add I2C support from Adafruit_NFCShield_I2C library.
@@ -77,7 +79,7 @@ byte pn532response_firmwarevers[] = {0x00, 0xFF, 0x06, 0xFA, 0xD5, 0x03};
     #define PN532_SPI_CLOCKDIV SPI_CLOCK_DIV16
 #endif
 
-#define PN532_PACKBUFFSIZ 64
+#define PN532_PACKBUFFSIZ 280
 byte pn532_packetbuffer[PN532_PACKBUFFSIZ];
 
 #ifndef _BV
@@ -643,14 +645,14 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
     @param  responseLength  Pointer to the response data length
 */
 /**************************************************************************/
-bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength) {
+bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint16_t * responseLength) {
   if (sendLength > PN532_PACKBUFFSIZ-2) {
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.println(F("APDU length too long for packet buffer"));
     #endif
     return false;
   }
-  uint8_t i;
+  uint16_t i;
 
   pn532_packetbuffer[0] = 0x40; // PN532_COMMAND_INDATAEXCHANGE;
   pn532_packetbuffer[1] = _inListedTag;
@@ -675,8 +677,22 @@ bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t 
   readdata(pn532_packetbuffer,sizeof(pn532_packetbuffer));
 
   if (pn532_packetbuffer[0] == 0 && pn532_packetbuffer[1] == 0 && pn532_packetbuffer[2] == 0xff) {
-    uint8_t length = pn532_packetbuffer[3];
-    if (pn532_packetbuffer[4]!=(uint8_t)(~length+1)) {
+    
+    uint16_t length;
+    uint8_t checksumOffset;
+    uint8_t lengthChecksum;
+    if (pn532_packetbuffer[3] == PN532_EXTENDED_FRAME_FIXED_VALUE && pn532_packetbuffer[4] == PN532_EXTENDED_FRAME_FIXED_VALUE) {
+      //It's an extended frame
+      length = (((uint16_t) pn532_packetbuffer[5]) << 8) | pn532_packetbuffer[6];
+      lengthChecksum = (uint8_t)(~(pn532_packetbuffer[5]+pn532_packetbuffer[6])+1);
+      checksumOffset = 3; //length is encoded in three more bytes (two fixed values 0xFF and an additional octet for the length itself)
+    } else {
+      length = pn532_packetbuffer[3];
+      lengthChecksum = (uint8_t)(~length+1);
+      checksumOffset = 0;
+    }
+    
+    if (pn532_packetbuffer[checksumOffset+4]!=lengthChecksum) {
       #ifdef PN532DEBUG
         PN532DEBUGPRINT.println(F("Length check invalid"));
         PN532DEBUGPRINT.println(length,HEX);
@@ -684,8 +700,8 @@ bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t 
       #endif
       return false;
     }
-    if (pn532_packetbuffer[5]==PN532_PN532TOHOST && pn532_packetbuffer[6]==PN532_RESPONSE_INDATAEXCHANGE) {
-      if ((pn532_packetbuffer[7] & 0x3f)!=0) {
+    if (pn532_packetbuffer[checksumOffset+5]==PN532_PN532TOHOST && pn532_packetbuffer[checksumOffset+6]==PN532_RESPONSE_INDATAEXCHANGE) {
+      if ((pn532_packetbuffer[checksumOffset+7] & 0x3f)!=0) {
         #ifdef PN532DEBUG
           PN532DEBUGPRINT.println(F("Status code indicates an error"));
         #endif
@@ -699,8 +715,9 @@ bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t 
       }
 
       for (i=0; i<length; ++i) {
-        response[i] = pn532_packetbuffer[8+i];
+        response[i] = pn532_packetbuffer[checksumOffset+8+i];
       }
+
       *responseLength = length;
 
       return true;
@@ -1564,7 +1581,7 @@ bool Adafruit_PN532::waitready(uint16_t timeout) {
     @param  n         Number of bytes to be read
 */
 /**************************************************************************/
-void Adafruit_PN532::readdata(uint8_t* buff, uint8_t n) {
+void Adafruit_PN532::readdata(uint8_t* buff, uint16_t n) {
   if (_usingSPI) {
     // SPI write.
     #ifdef SPI_HAS_TRANSACTION
@@ -1577,7 +1594,7 @@ void Adafruit_PN532::readdata(uint8_t* buff, uint8_t n) {
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.print(F("Reading: "));
     #endif
-    for (uint8_t i=0; i<n; i++) {
+    for (uint16_t i=0; i<n; i++) {
       delay(1);
       buff[i] = spi_read();
       #ifdef PN532DEBUG
@@ -1605,10 +1622,10 @@ void Adafruit_PN532::readdata(uint8_t* buff, uint8_t n) {
       PN532DEBUGPRINT.print(F("Reading: "));
     #endif
     // Start read (n+1 to take into account leading 0x01 with I2C)
-    WIRE.requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint8_t)(n+2));
+    WIRE.requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint16_t)(n+2));
     // Discard the leading 0x01
     i2c_recv();
-    for (uint8_t i=0; i<n; i++) {
+    for (uint16_t i=0; i<n; i++) {
       delay(1);
       buff[i] = i2c_recv();
       #ifdef PN532DEBUG
