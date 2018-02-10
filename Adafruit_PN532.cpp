@@ -543,11 +543,11 @@ bool Adafruit_PN532::setPassiveActivationRetries(uint8_t maxRetries) {
   return 1;
 }
 
-/***** ISO14443A Commands ******/
+/***** ISO14443 Commands ******/
 
 /**************************************************************************/
 /*!
-    Waits for an ISO14443A target to enter the field
+    Waits for an ISO14443 target to enter the field
 
     @param  cardBaudRate  Baud rate of the card
     @param  uid           Pointer to the array that will be populated
@@ -563,73 +563,186 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
   pn532_packetbuffer[1] = 1;  // max 1 cards at once (we can set this to 2 later)
   pn532_packetbuffer[2] = cardbaudrate;
 
-  if (!sendCommandCheckAck(pn532_packetbuffer, 3, timeout))
+  if (cardbaudrate == PN532_ISO14443B)
   {
-    #ifdef PN532DEBUG
-      PN532DEBUGPRINT.println(F("No card(s) read"));
-    #endif
-    return 0x0;  // no cards read
-  }
+    pn532_packetbuffer[3] = 0x00; //AFI
 
-  // wait for a card to enter the field (only possible with I2C)
-  if (!_usingSPI) {
-    #ifdef PN532DEBUG
-      PN532DEBUGPRINT.println(F("Waiting for IRQ (indicates card presence)"));
-    #endif
-    if (!waitready(timeout)) {
+    if (!sendCommandCheckAck(pn532_packetbuffer, 4, timeout))
+    {
       #ifdef PN532DEBUG
-        PN532DEBUGPRINT.println(F("IRQ Timeout"));
+        PN532DEBUGPRINT.println(F("No card(s) read"));
       #endif
-      return 0x0;
+      return 0x0;  // no cards read
     }
-  }
 
-  // read data packet
-  readdata(pn532_packetbuffer, 20);
-  // check some basic stuff
+    // wait for a card to enter the field (only possible with I2C)
+    if (!_usingSPI) {
+      #ifdef PN532DEBUG
+        PN532DEBUGPRINT.println(F("Waiting for IRQ (indicates card presence)"));
+      #endif
+      if (!waitready(timeout)) {
+        #ifdef PN532DEBUG
+          PN532DEBUGPRINT.println(F("IRQ Timeout"));
+        #endif
+        return 0x0;
+      }
+    }
 
-  /* ISO14443A card response should be in the following format:
+    // read data packet
+    readdata(pn532_packetbuffer, 35); // We may not need so many bytes
+    // check some basic stuff
 
-    byte            Description
-    -------------   ------------------------------------------
-    b0..6           Frame header and preamble
-    b7              Tags Found
-    b8              Tag Number (only one used in this example)
-    b9..10          SENS_RES
-    b11             SEL_RES
-    b12             NFCID Length
-    b13..NFCIDLen   NFCID                                      */
+    /* ISO14443B card response should be in the following format:
 
-  #ifdef MIFAREDEBUG
-    PN532DEBUGPRINT.print(F("Found ")); PN532DEBUGPRINT.print(pn532_packetbuffer[7], DEC); PN532DEBUGPRINT.println(F(" tags"));
-  #endif
-  if (pn532_packetbuffer[7] != 1)
-    return 0;
+      byte                 Description
+      ------------------   ------------------------------------------
+      b0..b6               Frame header and preamble
+      b7                   Tags found
+      b8                   Tag Number (only one used in this example)
+      b9..20               ATQB
+      b21                  ATTRIB_RES Length
+      b22..ATTRIB_RESLen   ATTRIB_RES
+    */
 
-  uint16_t sens_res = pn532_packetbuffer[9];
-  sens_res <<= 8;
-  sens_res |= pn532_packetbuffer[10];
-  #ifdef MIFAREDEBUG
-    PN532DEBUGPRINT.print(F("ATQA: 0x"));  PN532DEBUGPRINT.println(sens_res, HEX);
-    PN532DEBUGPRINT.print(F("SAK: 0x"));  PN532DEBUGPRINT.println(pn532_packetbuffer[11], HEX);
-  #endif
-
-  /* Card appears to be Mifare Classic */
-  *uidLength = pn532_packetbuffer[12];
-  #ifdef MIFAREDEBUG
-    PN532DEBUGPRINT.print(F("UID:"));
-  #endif
-  for (uint8_t i=0; i < pn532_packetbuffer[12]; i++)
-  {
-    uid[i] = pn532_packetbuffer[13+i];
     #ifdef MIFAREDEBUG
-      PN532DEBUGPRINT.print(F(" 0x"));PN532DEBUGPRINT.print(uid[i], HEX);
+      PN532DEBUGPRINT.print(F("Found ")); PN532DEBUGPRINT.print(pn532_packetbuffer[7], DEC); PN532DEBUGPRINT.println(F(" tags"));
+    #endif
+    if (pn532_packetbuffer[7] != 1)
+      return 0;
+
+    _inListedTag = pn532_packetbuffer[8];
+
+    /* ISO14443B ATQ_B format:
+      byte    Description
+      -----   -------
+      b0      0x50
+      b1..4   PUPI
+      b5..8   Application Data
+      b9      Bit Rate Capacity
+      b10     Max Frame Size/-4 Info
+      b11     FWI/Coding Options
+    */
+
+    uint8_t atqb[12];
+    #ifdef MIFAREDEBUG
+      PN532DEBUGPRINT.print(F("ATQB:"));
+    #endif
+
+    /* Sometimes, we get a lot of 0x01 bytes preceding the actual ATQ_B packet
+       To mitigate that, we'll add a offset so that we can skip those 0x01 bytes
+    */
+    uint8_t offset = 0;
+    while (pn532_packetbuffer[offset + 9] == 0x1) {
+      offset++;
+    }
+    if (pn532_packetbuffer[offset + 9] == 0x50) {
+      for (uint8_t i = 0; i < 12; i++) {
+        atqb[i] = pn532_packetbuffer[offset + 9 + i];
+        #ifdef MIFAREDEBUG
+          PN532DEBUGPRINT.print(F(" 0x"));PN532DEBUGPRINT.print(atqb[i], HEX);
+        #endif
+      }
+      #ifdef MIFAREDEBUG
+        PN532DEBUGPRINT.println();
+      #endif
+    } else {
+        return 0;
+    }
+
+    #ifdef MIFAREDEBUG
+      PN532DEBUGPRINT.print(F("ATTRIB_RES: "));
+      for (uint8_t i = 0; i < pn532_packetbuffer[offset + 21]; i++) {
+        PN532DEBUGPRINT.print(F(" 0x"));PN532DEBUGPRINT.print(pn532_packetbuffer[offset + 22+i]);
+      }
+      PN532DEBUGPRINT.println();
+    #endif
+
+    *uidLength = 4;
+
+    #ifdef MIFAREDEBUG
+      PN532DEBUGPRINT.print(F("UID:"));
+    #endif
+    for (uint8_t i=0; i < 4; i++)
+    {
+      uid[i] = atqb[1+i];
+      #ifdef MIFAREDEBUG
+        PN532DEBUGPRINT.print(F(" 0x"));PN532DEBUGPRINT.print(uid[i], HEX);
+      #endif
+    }
+    #ifdef MIFAREDEBUG
+      PN532DEBUGPRINT.println();
     #endif
   }
-  #ifdef MIFAREDEBUG
-    PN532DEBUGPRINT.println();
-  #endif
+  else {
+    if (!sendCommandCheckAck(pn532_packetbuffer, 3, timeout))
+    {
+      #ifdef PN532DEBUG
+        PN532DEBUGPRINT.println(F("No card(s) read"));
+      #endif
+      return 0x0;  // no cards read
+    }
 
+    // wait for a card to enter the field (only possible with I2C)
+    if (!_usingSPI) {
+      #ifdef PN532DEBUG
+        PN532DEBUGPRINT.println(F("Waiting for IRQ (indicates card presence)"));
+      #endif
+      if (!waitready(timeout)) {
+        #ifdef PN532DEBUG
+          PN532DEBUGPRINT.println(F("IRQ Timeout"));
+        #endif
+        return 0x0;
+      }
+    }
+
+    // read data packet
+    readdata(pn532_packetbuffer, 20);
+    // check some basic stuff
+
+    /* ISO14443A card response should be in the following format:
+
+      byte            Description
+      -------------   ------------------------------------------
+      b0..6           Frame header and preamble
+      b7              Tags Found
+      b8              Tag Number (only one used in this example)
+      b9..10          SENS_RES
+      b11             SEL_RES
+      b12             NFCID Length
+      b13..NFCIDLen   NFCID                                      */
+
+    #ifdef MIFAREDEBUG
+      PN532DEBUGPRINT.print(F("Found ")); PN532DEBUGPRINT.print(pn532_packetbuffer[7], DEC); PN532DEBUGPRINT.println(F(" tags"));
+    #endif
+    if (pn532_packetbuffer[7] != 1)
+      return 0;
+
+    _inListedTag = pn532_packetbuffer[8];
+
+    uint16_t sens_res = pn532_packetbuffer[9];
+    sens_res <<= 8;
+    sens_res |= pn532_packetbuffer[10];
+    #ifdef MIFAREDEBUG
+      PN532DEBUGPRINT.print(F("ATQA: 0x"));  PN532DEBUGPRINT.println(sens_res, HEX);
+      PN532DEBUGPRINT.print(F("SAK: 0x"));  PN532DEBUGPRINT.println(pn532_packetbuffer[11], HEX);
+    #endif
+
+    /* Card appears to be Mifare Classic */
+    *uidLength = pn532_packetbuffer[12];
+    #ifdef MIFAREDEBUG
+      PN532DEBUGPRINT.print(F("UID:"));
+    #endif
+    for (uint8_t i=0; i < pn532_packetbuffer[12]; i++)
+    {
+      uid[i] = pn532_packetbuffer[13+i];
+      #ifdef MIFAREDEBUG
+        PN532DEBUGPRINT.print(F(" 0x"));PN532DEBUGPRINT.print(uid[i], HEX);
+      #endif
+    }
+    #ifdef MIFAREDEBUG
+      PN532DEBUGPRINT.println();
+    #endif
+  }
   return 1;
 }
 
@@ -694,9 +807,9 @@ bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t 
 
       length -= 3;
 
-      if (length > *responseLength) {
-        length = *responseLength; // silent truncation...
-      }
+      //if (length > *responseLength) {
+      //  length = *responseLength; // silent truncation...
+      //}
 
       for (i=0; i<length; ++i) {
         response[i] = pn532_packetbuffer[8+i];
@@ -724,19 +837,34 @@ bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t 
 */
 /**************************************************************************/
 bool Adafruit_PN532::inListPassiveTarget() {
+  return inListPassiveTarget(0);
+}
+
+bool Adafruit_PN532::inListPassiveTarget(uint8_t cardBaudRate) {
   pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
   pn532_packetbuffer[1] = 1;
-  pn532_packetbuffer[2] = 0;
+  pn532_packetbuffer[2] = cardBaudRate;
 
   #ifdef PN532DEBUG
     PN532DEBUGPRINT.print(F("About to inList passive target"));
   #endif
 
-  if (!sendCommandCheckAck(pn532_packetbuffer,3,1000)) {
-    #ifdef PN532DEBUG
-      PN532DEBUGPRINT.println(F("Could not send inlist message"));
-    #endif
-    return false;
+  if (cardBaudRate == PN532_ISO14443B) {
+    pn532_packetbuffer[3] = 0;
+    if (!sendCommandCheckAck(pn532_packetbuffer,4,1000)) {
+      #ifdef PN532DEBUG
+        PN532DEBUGPRINT.println(F("Could not send inlist message"));
+      #endif
+      return false;
+    }
+  }
+  else {
+    if (!sendCommandCheckAck(pn532_packetbuffer,3,1000)) {
+      #ifdef PN532DEBUG
+        PN532DEBUGPRINT.println(F("Could not send inlist message"));
+      #endif
+      return false;
+    }
   }
 
   if (!waitready(30000)) {

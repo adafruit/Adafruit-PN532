@@ -95,6 +95,7 @@
 #define PN532_I2C_READYTIMEOUT              (20)
 
 #define PN532_MIFARE_ISO14443A              (0x00)
+#define PN532_ISO14443B                     (0x03)
 
 // Mifare Commands
 #define MIFARE_CMD_AUTH_A                   (0x60)
@@ -168,10 +169,11 @@ class Adafruit_PN532{
   uint8_t  readGPIO(void);
   bool     setPassiveActivationRetries(uint8_t maxRetries);
   
-  // ISO14443A functions
+  // ISO14443 functions
   bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout = 0); //timeout 0 means no timeout - will block forever.
   bool inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength);
   bool inListPassiveTarget();
+  bool inListPassiveTarget(uint8_t cardBaudRate);
   
   // Mifare Classic functions
   bool    mifareclassic_IsFirstBlock (uint32_t uiBlock);
