@@ -49,7 +49,7 @@
 #endif
 
 #include <Wire.h>
-#if defined(__AVR__) || defined(__i386__) || defined(ARDUINO_ARCH_SAMD) || defined(ESP8266) || defined(ARDUINO_ARCH_STM32)
+#if defined(__AVR__) || defined(__i386__) || defined(ARDUINO_ARCH_SAMD) || defined(ESP8266) || defined(ARDUINO_ARCH_STM32) || defined(ESP32)
  #define WIRE Wire
 #else // Arduino Due
  #define WIRE Wire1
@@ -1547,7 +1547,9 @@ bool Adafruit_PN532::waitready(uint16_t timeout) {
     if (timeout != 0) {
       timer += 10;
       if (timer > timeout) {
-        PN532DEBUGPRINT.println("TIMEOUT!");
+	#ifdef PN532DEBUG
+	  PN532DEBUGPRINT.println("TIMEOUT!");
+	#endif
         return false;
       }
     }
