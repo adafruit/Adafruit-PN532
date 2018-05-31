@@ -153,11 +153,12 @@
 #define PN532_GPIO_P34                      (4)
 #define PN532_GPIO_P35                      (5)
 
+class SPIClass;
 class Adafruit_PN532{
  public:
   Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss);  // Software SPI
   Adafruit_PN532(uint8_t irq, uint8_t reset);  // Hardware I2C
-  Adafruit_PN532(uint8_t ss);  // Hardware SPI
+  Adafruit_PN532(uint8_t ss, SPIClass* _hardwareSPI = &SPI);  // Hardware SPI
   void begin(void);
   
   // Generic PN532 functions
@@ -196,14 +197,15 @@ class Adafruit_PN532{
   static void PrintHexChar(const byte * pbtData, const uint32_t numBytes);
 
  private:
-  uint8_t _ss, _clk, _mosi, _miso;
-  uint8_t _irq, _reset;
-  uint8_t _uid[7];       // ISO14443A uid
-  uint8_t _uidLen;       // uid len
-  uint8_t _key[6];       // Mifare Classic key
-  uint8_t _inListedTag;  // Tg number of inlisted tag.
-  bool    _usingSPI;     // True if using SPI, false if using I2C.
-  bool    _hardwareSPI;  // True is using hardware SPI, false if using software SPI.
+  uint8_t   _ss, _clk, _mosi, _miso;
+  uint8_t   _irq, _reset;
+  uint8_t   _uid[7];       // ISO14443A uid
+  uint8_t   _uidLen;       // uid len
+  uint8_t   _key[6];       // Mifare Classic key
+  uint8_t   _inListedTag;  // Tg number of inlisted tag.
+  bool      _usingSPI;     // True if using SPI, false if using I2C.
+  SPIClass* _hardwareSPI;  // Not NULL is using hardware SPI, NULL if using software SPI.
+
 
   // Low level communication functions that handle both SPI and I2C.
   void readdata(uint8_t* buff, uint8_t n);
