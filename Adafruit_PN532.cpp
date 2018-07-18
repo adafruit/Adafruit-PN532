@@ -19,6 +19,8 @@
 
     @section  HISTORY
 
+    v2.2 - Added non blocking mode (interruption), for SPI only for now
+
     v2.1 - Added NTAG2xx helper functions
 
     v2.0 - Refactored to add I2C support from Adafruit_NFCShield_I2C library.
@@ -381,6 +383,49 @@ bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t 
   return true; // ack'd command
 }
 
+
+/**************************************************************************/
+/*!
+    @brief  Sends a command and waits a specified period for the ACK
+
+    @param  cmd       Pointer to the command buffer
+    @param  cmdlen    The size of the command in bytes
+    @param  timeout   timeout before giving up
+
+    @returns  1 if everything is OK, 0 if timeout occured before an
+              ACK was recieved
+*/
+/**************************************************************************/
+// default timeout of one second
+bool Adafruit_PN532::sendCommandCheckAckNonBlocking(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout) {
+  uint16_t timer = 0;
+
+  // write the command
+  writecommand(cmd, cmdlen);
+
+  // Wait for chip to say its ready!
+  if (!waitready(timeout)) {
+    return false;
+  }
+
+  #ifdef PN532DEBUG
+    if (!_usingSPI) {
+      PN532DEBUGPRINT.println(F("IRQ received"));
+    }
+  #endif
+
+  // read acknowledgement
+  if (!readack()) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("No ACK frame received!"));
+    #endif
+    return false;
+  }
+
+  return true; // ack'd command
+}
+
+
 /**************************************************************************/
 /*!
     Writes an 8-bit value that sets the state of the PN532's GPIO pins
@@ -558,7 +603,7 @@ bool Adafruit_PN532::setPassiveActivationRetries(uint8_t maxRetries) {
     @returns 1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
-bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout) {
+bool Adafruit_PN532::readPassiveTargetIDBlocking(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout) {
   pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
   pn532_packetbuffer[1] = 1;  // max 1 cards at once (we can set this to 2 later)
   pn532_packetbuffer[2] = cardbaudrate;
@@ -568,7 +613,7 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
     #ifdef PN532DEBUG
       PN532DEBUGPRINT.println(F("No card(s) read"));
     #endif
-    return 0x0;  // no cards read
+    return false;  // no cards read
   }
 
   // wait for a card to enter the field (only possible with I2C)
@@ -580,16 +625,38 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
       #ifdef PN532DEBUG
         PN532DEBUGPRINT.println(F("IRQ Timeout"));
       #endif
-      return 0x0;
+      return false;
     }
   }
 
+  return readDetectedPassiveTargetID(uid, uidLength);
+}
+
+
+/**************************************************************************/
+/*!
+    Put the reader in detection mode, non blocking so interrupts must be enabled
+
+    @param  cardBaudRate  Baud rate of the card
+
+    @returns 1 if everything executed properly, 0 for an error
+*/
+/**************************************************************************/
+bool Adafruit_PN532::startPassiveTargetIDDetection(uint8_t cardbaudrate) {
+  pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
+  pn532_packetbuffer[1] = 1;  // max 1 cards at once (we can set this to 2 later)
+  pn532_packetbuffer[2] = cardbaudrate;
+
+  return sendCommandCheckAckNonBlocking(pn532_packetbuffer, 3);
+}
+
+
+bool Adafruit_PN532::readDetectedPassiveTargetID(uint8_t * uid, uint8_t * uidLength) {
   // read data packet
   readdata(pn532_packetbuffer, 20);
   // check some basic stuff
 
   /* ISO14443A card response should be in the following format:
-
     byte            Description
     -------------   ------------------------------------------
     b0..6           Frame header and preamble
@@ -604,7 +671,7 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
     PN532DEBUGPRINT.print(F("Found ")); PN532DEBUGPRINT.print(pn532_packetbuffer[7], DEC); PN532DEBUGPRINT.println(F(" tags"));
   #endif
   if (pn532_packetbuffer[7] != 1)
-    return 0;
+    return false;
 
   uint16_t sens_res = pn532_packetbuffer[9];
   sens_res <<= 8;
@@ -619,7 +686,7 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
   #ifdef MIFAREDEBUG
     PN532DEBUGPRINT.print(F("UID:"));
   #endif
-  for (uint8_t i=0; i < pn532_packetbuffer[12]; i++)
+  for (uint8_t i=0; i <*uidLength; i++)
   {
     uid[i] = pn532_packetbuffer[13+i];
     #ifdef MIFAREDEBUG
@@ -630,7 +697,8 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
     PN532DEBUGPRINT.println();
   #endif
 
-  return 1;
+  return true;
+
 }
 
 /**************************************************************************/

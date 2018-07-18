@@ -18,6 +18,8 @@
 
 	@section  HISTORY
 
+  v2.1  - Added non blocking mode (interruption), for SPI only for now
+
   v2.0  - Refactored to add I2C support from Adafruit_NFCShield_I2C library.
 
 	v1.1  - Added full command list
@@ -164,12 +166,15 @@ class Adafruit_PN532{
   bool     SAMConfig(void);
   uint32_t getFirmwareVersion(void);
   bool     sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);  
+  bool     sendCommandCheckAckNonBlocking(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);
   bool     writeGPIO(uint8_t pinstate);
   uint8_t  readGPIO(void);
   bool     setPassiveActivationRetries(uint8_t maxRetries);
   
   // ISO14443A functions
-  bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout = 0); //timeout 0 means no timeout - will block forever.
+  bool readPassiveTargetIDBlocking(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout = 0); //timeout 0 means no timeout - will block forever.
+  bool startPassiveTargetIDDetection(uint8_t cardbaudrate);
+  bool readDetectedPassiveTargetID(uint8_t * uid, uint8_t * uidLength);
   bool inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength);
   bool inListPassiveTarget();
   
