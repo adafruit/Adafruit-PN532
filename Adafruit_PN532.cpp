@@ -1499,7 +1499,7 @@ bool Adafruit_PN532::readack() {
 
   readdata(ackbuff, 6);
 
-  return (0 == strncmp((char *)ackbuff, (char *)pn532ack, 6));
+  return (0 == memcmp((char *)ackbuff, (char *)pn532ack, 6));
 }
 
 
