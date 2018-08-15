@@ -650,6 +650,12 @@ bool Adafruit_PN532::inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t 
     #endif
     return false;
   }
+  if (*responseLength > PN532_PACKBUFFSIZ) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("responseLength too long for packet buffer"));
+    #endif
+    return false;
+  }
   uint8_t i;
 
   pn532_packetbuffer[0] = 0x40; // PN532_COMMAND_INDATAEXCHANGE;
