@@ -193,15 +193,12 @@ void Adafruit_PN532::begin() {
     if (_hardwareSPI) {
       SPI.begin();
 
-      #ifdef SPI_HAS_TRANSACTION
-        SPI.beginTransaction(PN532_SPI_SETTING);
-      #else
+      #ifndef SPI_HAS_TRANSACTION
         SPI.setDataMode(SPI_MODE0);
         SPI.setBitOrder(LSBFIRST);
         SPI.setClockDivider(PN532_SPI_CLOCKDIV);
       #endif
     }
-    digitalWrite(_ss, LOW);
 
     delay(1000);
 
@@ -210,11 +207,6 @@ void Adafruit_PN532::begin() {
     sendCommandCheckAck(pn532_packetbuffer, 1);
 
     // ignore response!
-
-    digitalWrite(_ss, HIGH);
-    #ifdef SPI_HAS_TRANSACTION
-      if (_hardwareSPI) SPI.endTransaction();
-    #endif
   }
   else {
     // I2C initialization.
