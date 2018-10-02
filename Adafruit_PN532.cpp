@@ -1441,7 +1441,7 @@ uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url,
     return 0;
 
   // Write URI (starting at page 7)
-  uint16_t currentPage = 7;
+  uint8_t currentPage = 7;
   char * urlcopy = url;
   while(len)
   {
