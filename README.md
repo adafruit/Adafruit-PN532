@@ -10,6 +10,7 @@ Atmega328 @ 12MHz  |      X       |             |            | SPI &amp; I2C Wor
 Atmega32u4 @ 16MHz |      X       |             |            | Follow instructions at https://learn.adafruit.com/adafruit-pn532-rfid-nfc/shield-wiring#using-with-the-arduino-leonardo-and-yun to move pin 2.
 Atmega32u4 @ 8MHz  |      X       |             |            | SPI &amp; I2C Works
 ESP8266            |             |      X       |            | SPI only, I2C clock stretching not supported
+ESP32              |      X       |             |            | SPI works; I2C with IRQ and exclusive bus
 Atmega2560 @ 16MHz |      X       |             |            | SPI &amp; I2C Works
 ATSAM3X8E          |      X       |             |            | SPI &amp; I2C Works
 ATSAM21D           |             |      X       |            | SPI only, I2C clock stretching not supported. Use programming port.
@@ -23,6 +24,7 @@ STM32F2            |             |             |     X       |
   * ATmega32u4 @ 16MHz : Arduino Leonardo, Arduino Micro, Arduino Yun, Teensy 2.0
   * ATmega32u4 @ 8MHz : Adafruit Flora, Bluefruit Micro
   * ESP8266 : Adafruit Huzzah
+  * ESP32 : WROOM
   * ATmega2560 @ 16MHz : Arduino Mega
   * ATSAM3X8E : Arduino Due
   * ATSAM21D : Arduino Zero, M0 Pro
