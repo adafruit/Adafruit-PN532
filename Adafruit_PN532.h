@@ -1,19 +1,19 @@
 /**************************************************************************/
-/*! 
+/*!
     @file     Adafruit_PN532.h
     @author   Adafruit Industries
 	@license  BSD (see license.txt)
-	
+
 
 	This is a library for the Adafruit PN532 NFC/RFID breakout boards
-	This library works with the Adafruit NFC breakout 
+	This library works with the Adafruit NFC breakout
 	----> https://www.adafruit.com/products/364
-	
-	Check out the links above for our tutorials and wiring diagrams 
+
+	Check out the links above for our tutorials and wiring diagrams
   These chips use SPI or I2C to communicate.
-	
-	Adafruit invests time and resources providing this open source code, 
-	please support Adafruit and open-source hardware by purchasing 
+
+	Adafruit invests time and resources providing this open source code,
+	please support Adafruit and open-source hardware by purchasing
 	products from Adafruit!
 
 	@section  HISTORY
@@ -23,10 +23,9 @@
 	v1.1  - Added full command list
           - Added 'verbose' mode flag to constructor to toggle debug output
           - Changed readPassiveTargetID() to return variable length values
-	
+
 */
 /**************************************************************************/
-
 #ifndef ADAFRUIT_PN532_H
 #define ADAFRUIT_PN532_H
 
@@ -80,6 +79,7 @@
 
 #define PN532_RESPONSE_INDATAEXCHANGE       (0x41)
 #define PN532_RESPONSE_INLISTPASSIVETARGET  (0x4B)
+#define PN532_RESPONSE_INRELEASE            (0x53)
 
 #define PN532_WAKEUP                        (0x55)
 
@@ -106,6 +106,15 @@
 #define MIFARE_CMD_INCREMENT                (0xC1)
 #define MIFARE_CMD_STORE                    (0xC2)
 #define MIFARE_ULTRALIGHT_CMD_WRITE         (0xA2)
+
+// FeliCa Commands
+#define FELICA_CMD_POLLING                  (0x00)
+#define FELICA_CMD_REQUEST_SERVICE          (0x02)
+#define FELICA_CMD_REQUEST_RESPONSE         (0x04)
+#define FELICA_CMD_READ_WITHOUT_ENCRYPTION  (0x06)
+#define FELICA_CMD_WRITE_WITHOUT_ENCRYPTION (0x08)
+#define FELICA_CMD_REQUEST_SYSTEM_CODE      (0x0C)
+
 
 // Prefixes for NDEF Records (to identify record type)
 #define NDEF_URIPREFIX_NONE                 (0x00)
@@ -153,26 +162,35 @@
 #define PN532_GPIO_P34                      (4)
 #define PN532_GPIO_P35                      (5)
 
+
+// FeliCa consts
+#define FELICA_READ_MAX_SERVICE_NUM         16
+#define FELICA_READ_MAX_BLOCK_NUM           12 // for typical FeliCa card
+#define FELICA_WRITE_MAX_SERVICE_NUM        16
+#define FELICA_WRITE_MAX_BLOCK_NUM          10 // for typical FeliCa card
+#define FELICA_REQ_SERVICE_MAX_NODE_NUM     32
+
+
 class Adafruit_PN532{
  public:
   Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss);  // Software SPI
   Adafruit_PN532(uint8_t irq, uint8_t reset);  // Hardware I2C
   Adafruit_PN532(uint8_t ss);  // Hardware SPI
   void begin(void);
-  
+
   // Generic PN532 functions
   bool     SAMConfig(void);
   uint32_t getFirmwareVersion(void);
-  bool     sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);  
+  bool     sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);
   bool     writeGPIO(uint8_t pinstate);
   uint8_t  readGPIO(void);
   bool     setPassiveActivationRetries(uint8_t maxRetries);
-  
+
   // ISO14443A functions
   bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout = 0); //timeout 0 means no timeout - will block forever.
   bool inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength);
   bool inListPassiveTarget();
-  
+
   // Mifare Classic functions
   bool    mifareclassic_IsFirstBlock (uint32_t uiBlock);
   bool    mifareclassic_IsTrailerBlock (uint32_t uiBlock);
@@ -181,7 +199,7 @@ class Adafruit_PN532{
   uint8_t mifareclassic_WriteDataBlock (uint8_t blockNumber, uint8_t * data);
   uint8_t mifareclassic_FormatNDEF (void);
   uint8_t mifareclassic_WriteNDEFURI (uint8_t sectorNumber, uint8_t uriIdentifier, const char * url);
-  
+
   // Mifare Ultralight functions
   uint8_t mifareultralight_ReadPage (uint8_t page, uint8_t * buffer);
   uint8_t mifareultralight_WritePage (uint8_t page, uint8_t * data);
@@ -190,10 +208,26 @@ class Adafruit_PN532{
   uint8_t ntag2xx_ReadPage (uint8_t page, uint8_t * buffer);
   uint8_t ntag2xx_WritePage (uint8_t page, uint8_t * data);
   uint8_t ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url, uint8_t dataLen);
-  
+
+  // FeliCa Functions
+  int8_t felica_Polling(uint16_t systemCode, uint8_t requestCode, uint8_t *idm, uint8_t *pmm, uint16_t *systemCodeResponse, uint16_t timeout = 0);
+  int8_t felica_SendCommand (const uint8_t *commandBuf, uint8_t commandlength, uint8_t *responseBuf, uint8_t expectedResLen, uint8_t *responseLength);
+  int8_t felica_RequestService(uint8_t numNode, uint16_t *nodeCodeList, uint16_t *keyVersions) ;
+  int8_t felica_RequestResponse(uint8_t *mode);
+  int8_t felica_ReadWithoutEncryption (uint8_t numService, const uint16_t *serviceCodeList, uint8_t numBlock, const uint16_t *blockList, uint8_t blockData[][16]);
+  int8_t felica_WriteWithoutEncryption (uint8_t numService, const uint16_t *serviceCodeList, uint8_t numBlock, const uint16_t *blockList, uint8_t blockData[][16]);
+  int8_t felica_RequestSystemCode(uint8_t *numSystemCode, uint16_t *systemCodeList);
+  int8_t felica_Release();
+//  int8_t felica_FormatNDEF (void);
+//  int8_t felica_WriteNDEFURI (uint8_t sectorNumber, uint8_t uriIdentifier, const char *url);
+//  int8_t felicalites_InternalAuthentication (const uint8_t *random, const uint8_t *ck );
+//  int8_t felicalites_ExternalAuthentication (void);
+
   // Help functions to display formatted text
   static void PrintHex(const byte * data, const uint32_t numBytes);
   static void PrintHexChar(const byte * pbtData, const uint32_t numBytes);
+  static void PrintHex8(const uint8_t d);
+  static void PrintHex16(const uint16_t d);
 
  private:
   uint8_t _ss, _clk, _mosi, _miso;
@@ -204,6 +238,9 @@ class Adafruit_PN532{
   uint8_t _inListedTag;  // Tg number of inlisted tag.
   bool    _usingSPI;     // True if using SPI, false if using I2C.
   bool    _hardwareSPI;  // True is using hardware SPI, false if using software SPI.
+  uint8_t _felicaIDm[8]; // FeliCa IDm (NFCID2)
+  uint8_t _felicaPMm[8]; // FeliCa PMm (PAD)
+
 
   // Low level communication functions that handle both SPI and I2C.
   void readdata(uint8_t* buff, uint8_t n);
@@ -215,6 +252,9 @@ class Adafruit_PN532{
   // SPI-specific functions.
   void    spi_write(uint8_t c);
   uint8_t spi_read(void);
+
+  bool felica_checkResponse(uint8_t PN532_command);
+
 
   // Note there are i2c_read and i2c_write inline functions defined in the .cpp file.
 };

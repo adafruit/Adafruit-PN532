@@ -77,7 +77,7 @@ byte pn532response_firmwarevers[] = {0x00, 0xFF, 0x06, 0xFA, 0xD5, 0x03};
     #define PN532_SPI_CLOCKDIV SPI_CLOCK_DIV16
 #endif
 
-#define PN532_PACKBUFFSIZ 64
+#define PN532_PACKBUFFSIZ 255
 byte pn532_packetbuffer[PN532_PACKBUFFSIZ];
 
 #ifndef _BV
@@ -291,6 +291,20 @@ void Adafruit_PN532::PrintHexChar(const byte * data, const uint32_t numBytes)
   }
   PN532DEBUGPRINT.println();
 }
+
+void Adafruit_PN532::PrintHex8(const uint8_t d) {
+  PN532DEBUGPRINT.print(" 0x");
+  PN532DEBUGPRINT.print( (d >> 4) & 0x0F, HEX);
+  PN532DEBUGPRINT.print( d & 0x0F, HEX);
+}
+void Adafruit_PN532::PrintHex16(const uint16_t d) {
+  PN532DEBUGPRINT.print(" 0x");
+  PN532DEBUGPRINT.print( (d >> 12) & 0x0F, HEX);
+  PN532DEBUGPRINT.print( (d >> 8) & 0x0F, HEX);
+  PN532DEBUGPRINT.print( (d >> 4) & 0x0F, HEX);
+  PN532DEBUGPRINT.print( d & 0x0F, HEX);
+}
+
 
 /**************************************************************************/
 /*!
@@ -1485,6 +1499,565 @@ uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url,
 }
 
 
+
+/***** FeliCa Functions ******/
+/**************************************************************************/
+/*!
+    @brief  Poll FeliCa card. PN532 acting as reader/initiator,
+            peer acting as card/responder.
+    @param[in]  systemCode             Designation of System Code. When sending FFFFh as System Code,
+                                       all the FeliCa cards can return response.
+    @param[in]  requestCode            Designation of Request Data as follows:
+                                         00h: No Request
+                                         01h: System Code request (to acquire System Code of the card)
+                                         02h: Communication perfomance request
+    @param[out] idm                    IDm of the card (8 bytes)
+    @param[out] pmm                    PMm of the card (8 bytes)
+    @param[out] systemCodeResponse     System Code of the card (2bytes)
+    @return                            1: A FeliCa card has detected,  0: No card has detected,   -1: error
+
+*/
+/**************************************************************************/
+int8_t Adafruit_PN532::felica_Polling(uint16_t systemCode, uint8_t requestCode,
+        uint8_t *idm, uint8_t *pmm, uint16_t *systemCodeResponse, uint16_t timeout)
+{
+  pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
+  pn532_packetbuffer[1] = 1;
+  pn532_packetbuffer[2] = 1;
+  pn532_packetbuffer[3] = FELICA_CMD_POLLING;
+  pn532_packetbuffer[4] = (systemCode >> 8) & 0xff;
+  pn532_packetbuffer[5] = systemCode & 0xFF;
+  pn532_packetbuffer[6] = requestCode;
+  pn532_packetbuffer[7] = 0;
+
+  if (!sendCommandCheckAck(pn532_packetbuffer,8,timeout)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Could not send Polling command"));
+    #endif
+    return -1;
+  }
+
+  // Wait card response
+  if (!waitready(timeout)) {
+    return -2;
+  }
+
+  readdata(pn532_packetbuffer, 9+20+2);
+  if ( !felica_checkResponse(PN532_RESPONSE_INLISTPASSIVETARGET) ) {
+    return -2;
+  }
+
+  // Check NbTg (pn532_packetbuffer[7])
+  if (pn532_packetbuffer[7] == 0) {
+    // No card have found
+    return 0;
+  } else if (pn532_packetbuffer[7] != 1) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.print (F("Unhandled number of targets inlisted. NbTg = "));
+      PN532DEBUGPRINT.println(pn532_packetbuffer[7], HEX);
+    #endif
+    return -3;
+  }
+
+  _inListedTag = pn532_packetbuffer[8];
+  #ifdef PN532DEBUG
+    PN532DEBUGPRINT.print(F("Tag number: "));
+    PN532DEBUGPRINT.println(_inListedTag);
+  #endif
+
+  // length check
+  uint8_t responseLength = pn532_packetbuffer[9];
+  if (responseLength != 18 && responseLength != 20) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Wrong response length"));
+    #endif
+    return -4;
+  }
+
+  uint8_t i;
+  for (i=0; i<8; ++i) {
+    idm[i] = pn532_packetbuffer[11+i];
+    _felicaIDm[i] = pn532_packetbuffer[11+i];
+    pmm[i] = pn532_packetbuffer[19+i];
+    _felicaPMm[i] = pn532_packetbuffer[19+i];
+  }
+
+  if ( responseLength == 20 ) {
+    *systemCodeResponse = (uint16_t)((pn532_packetbuffer[26] << 8) + pn532_packetbuffer[27]);
+  }
+
+  return 1;
+}
+
+
+/**************************************************************************/
+/*!
+    @brief  Sends an FeliCa command with the currently inlisted peer
+
+    @param[in]  commandBuf      FeliCa command packet. (e.g. 00 FF FF 00 00  for Polling command)
+    @param[in]  commandlength   Length of the FeliCa command packet. (e.g. 0x05 for above Polling command )
+    @param[out] responseBuf     FeliCa response packet. (e.g. 01 NFCID2(8 bytes) PAD  for Polling response)
+    @param[out] responselength  Length of the FeliCa response packet. (e.g. 0x12 for above Polling command )
+*/
+/**************************************************************************/
+int8_t Adafruit_PN532::felica_SendCommand (const uint8_t *commandBuf, uint8_t commandlength,
+  uint8_t *responseBuf, uint8_t expectedResLen, uint8_t *responseLength)
+{
+  if (commandlength > PN532_PACKBUFFSIZ-3) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Command length too long for packet buffer"));
+    #endif
+    return -1;
+  }
+
+  pn532_packetbuffer[0] = 0x40; // PN532_COMMAND_INDATAEXCHANGE;
+  pn532_packetbuffer[1] = _inListedTag;
+  pn532_packetbuffer[2] = commandlength + 1;
+  memcpy(&pn532_packetbuffer[3], commandBuf, commandlength);
+
+  if (!sendCommandCheckAck(pn532_packetbuffer,commandlength+3,200)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Could not send Command"));
+    #endif
+    return -2;
+  }
+
+  // Wait card response ( longer than 102.4ms )
+  if (!waitready(110)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Could not receive response"));
+    #endif
+    return -3;
+  }
+
+  readdata(pn532_packetbuffer,expectedResLen);
+  if ( !felica_checkResponse(PN532_RESPONSE_INDATAEXCHANGE) ) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Could not receive response"));
+    #endif
+    return -3;
+  }
+
+  // Check status (pn532_packetbuffer[7])
+  if ((pn532_packetbuffer[7] & 0x3F)!=0) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.print(F("Status code indicates an error: "));
+      PN532DEBUGPRINT.println(pn532_packetbuffer[7], HEX);
+    #endif
+    return -4;
+  }
+
+  // length check
+  *responseLength = pn532_packetbuffer[8] - 1;
+  if (pn532_packetbuffer[3] - 4 != *responseLength) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Wrong response length"));
+    #endif
+    return -5;
+  }
+
+  memcpy(responseBuf, &pn532_packetbuffer[9], *responseLength);
+
+  return 1;
+}
+
+
+/**************************************************************************/
+/*!
+    @brief  Sends FeliCa Request Service command
+
+    @param[in]  numNode         Number of Node
+    @param[in]  nodeCodeList    Node Code List (Big Endian)
+    @param[out] keyVersions     Key Version of each Node (Big Endian)
+*/
+/**************************************************************************/
+int8_t Adafruit_PN532::felica_RequestService(uint8_t numNode, uint16_t *nodeCodeList, uint16_t *keyVersions)
+{
+  if (numNode > FELICA_REQ_SERVICE_MAX_NODE_NUM) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("numNode is too large"));
+    #endif
+    return -1;
+  }
+
+  uint8_t i, j=0;
+  uint8_t cmdLen = 1 + 8 + 1 + 2*numNode;
+  uint8_t cmd[cmdLen];
+  cmd[j++] = FELICA_CMD_REQUEST_SERVICE;
+  for (i=0; i<8; ++i) {
+    cmd[j++] = _felicaIDm[i];
+  }
+  cmd[j++] = numNode;
+  for (i=0; i<numNode; ++i) {
+    cmd[j++] = nodeCodeList[i] & 0xFF;
+    cmd[j++] = (nodeCodeList[i] >> 8) & 0xff;
+  }
+
+  uint8_t responseBuf[10+2*numNode];
+  uint8_t responseLength;
+
+  if (!felica_SendCommand(cmd, cmdLen, responseBuf, 8 + 11 + 2*numNode + 2, &responseLength)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Request Service command failed"));
+    #endif
+    return -2;
+  }
+
+  // length check
+  if ( responseLength != 10+2*numNode ) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Request Service command failed (wrong response length)"));
+    #endif
+    return -3;
+  }
+
+  for(i=0; i<numNode; i++) {
+    keyVersions[i] = (uint16_t)(responseBuf[10+i*2] + (responseBuf[10+i*2+1] << 8));
+  }
+
+  return 1;
+}
+
+
+/**************************************************************************/
+/*!
+    @brief  Sends FeliCa Request Service command
+
+    @param[out]  mode         Current Mode of the card
+*/
+/**************************************************************************/
+int8_t Adafruit_PN532::felica_RequestResponse(uint8_t *mode)
+{
+  uint8_t cmd[9];
+  cmd[0] = FELICA_CMD_REQUEST_RESPONSE;
+  memcpy(&cmd[1], _felicaIDm, 8);
+
+  uint8_t responseBuf[10];
+  uint8_t responseLength;
+  if (!felica_SendCommand(cmd, 9, responseBuf, 8 + 11 + 2, &responseLength)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Request Response command failed"));
+    #endif
+    return -1;
+  }
+
+  // length check
+  if ( responseLength != 10) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Request Response command failed (wrong response length)"));
+    #endif
+    return -2;
+  }
+
+  *mode = responseBuf[9];
+
+  return 1;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Sends FeliCa Read Without Encryption command
+
+    @param[in]  numService         Number of Service
+    @param[in]  serviceCodeList    Service Code List (Big Endian)
+    @param[in]  numBlock           Number of Block (This API only accepts 2-byte block list element)
+    @param[in]  blockList          Block List
+    @param[out] blockData          Block Data
+*/
+/**************************************************************************/
+int8_t Adafruit_PN532::felica_ReadWithoutEncryption (uint8_t numService, const uint16_t *serviceCodeList,
+  uint8_t numBlock, const uint16_t *blockList, uint8_t blockData[][16])
+{
+  if (numService > FELICA_READ_MAX_SERVICE_NUM) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("numService is too large"));
+    #endif
+    return -1;
+  }
+  if (numBlock > FELICA_READ_MAX_BLOCK_NUM) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("numBlock is too large"));
+    #endif
+    return -2;
+  }
+
+  uint8_t i, j=0;
+  uint8_t cmdLen = 1 + 8 + 1 + 2*numService + 1 + 2*numBlock;
+  uint8_t cmd[cmdLen];
+  cmd[j++] = FELICA_CMD_READ_WITHOUT_ENCRYPTION;
+  for (i=0; i<8; ++i) {
+    cmd[j++] = _felicaIDm[i];
+  }
+  cmd[j++] = numService;
+  for (i=0; i<numService; ++i) {
+    cmd[j++] = serviceCodeList[i] & 0xFF;
+    cmd[j++] = (serviceCodeList[i] >> 8) & 0xff;
+  }
+  cmd[j++] = numBlock;
+  for (i=0; i<numBlock; ++i) {
+    cmd[j++] = (blockList[i] >> 8) & 0xFF;
+    cmd[j++] = blockList[i] & 0xff;
+  }
+
+  uint8_t responseBuf[12+16*numBlock];
+  uint8_t responseLength;
+  if (!felica_SendCommand(cmd, cmdLen, responseBuf, 8+13+16*numBlock + 2, &responseLength)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Read Without Encryption command failed"));
+    #endif
+    return -3;
+  }
+
+  // length check
+  if ( responseLength != 12+16*numBlock ) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Read Without Encryption command failed (wrong response length)"));
+    #endif
+    return -4;
+  }
+
+  // status flag check
+  if ( responseBuf[9] != 0 || responseBuf[10] != 0 ) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.print(F("Read Without Encryption command failed (Status Flag: "));
+      PrintHex8(responseBuf[9]);
+      PrintHex8(responseBuf[10]);
+      PN532DEBUGPRINT.println(F(")"));
+    #endif
+    return -5;
+  }
+
+  int k = 12;
+  for(i=0; i<numBlock; i++ ) {
+    for(j=0; j<16; j++ ) {
+      blockData[i][j] = responseBuf[k++];
+    }
+  }
+
+  return 1;
+}
+
+
+/**************************************************************************/
+/*!
+    @brief  Sends FeliCa Write Without Encryption command
+
+    @param[in]  numService         Number of Service.
+    @param[in]  serviceCodeList    Service Code List.
+    @param[in]  numBlock           Number of Block. (This API only accepts 2-byte block list element)
+    @param[in]  blockList          Block List.
+    @param[out] blockData          Block Data.
+    @return                          = 1: Success
+                                     < 0: error
+*/
+/**************************************************************************/
+int8_t Adafruit_PN532::felica_WriteWithoutEncryption (uint8_t numService, const uint16_t *serviceCodeList,
+  uint8_t numBlock, const uint16_t *blockList, uint8_t blockData[][16])
+{
+  if (numService > FELICA_WRITE_MAX_SERVICE_NUM) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("numService is too large"));
+    #endif
+  }
+  if (numBlock > FELICA_WRITE_MAX_BLOCK_NUM) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("numBlock is too large"));
+    #endif
+    return -2;
+  }
+
+  uint8_t i, j=0, k;
+  uint8_t cmdLen = 1 + 8 + 1 + 2*numService + 1 + 2*numBlock + 16 * numBlock;
+  uint8_t cmd[cmdLen];
+  cmd[j++] = FELICA_CMD_WRITE_WITHOUT_ENCRYPTION;
+  for (i=0; i<8; ++i) {
+    cmd[j++] = _felicaIDm[i];
+  }
+  cmd[j++] = numService;
+  for (i=0; i<numService; ++i) {
+    cmd[j++] = serviceCodeList[i] & 0xFF;
+    cmd[j++] = (serviceCodeList[i] >> 8) & 0xff;
+  }
+  cmd[j++] = numBlock;
+  for (i=0; i<numBlock; ++i) {
+    cmd[j++] = (blockList[i] >> 8) & 0xFF;
+    cmd[j++] = blockList[i] & 0xff;
+  }
+  for (i=0; i<numBlock; ++i) {
+    for(k=0; k<16; k++) {
+      cmd[j++] = blockData[i][k];
+    }
+  }
+
+  uint8_t responseBuf[11];
+  uint8_t responseLength;
+  if (felica_SendCommand(cmd, cmdLen, responseBuf, 8+12+2, &responseLength) != 1) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Write Without Encryption command failed"));
+    #endif
+    return -3;
+  }
+
+  // length check
+  if ( responseLength != 11 ) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Write Without Encryption command failed (wrong response length)"));
+    #endif
+    return -4;
+  }
+
+  // status flag check
+  if ( responseBuf[9] != 0 || responseBuf[10] != 0 ) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.print(F("Write Without Encryption command failed (Status Flag: "));
+      PrintHex8(responseBuf[9]);
+      PrintHex8(responseBuf[10]);
+      PN532DEBUGPRINT.println(F(")"));
+  #endif
+    return -5;
+  }
+
+  return 1;
+}
+
+
+
+/**************************************************************************/
+/*!
+    @brief  Sends FeliCa Request System Code command
+
+    @param[out] numSystemCode       Number of System Code (1 byte)
+    @param[out] systemCodeList      System Code list
+*/
+/**************************************************************************/
+int8_t Adafruit_PN532::felica_RequestSystemCode(uint8_t *numSystemCode, uint16_t *systemCodeList)
+{
+  uint8_t cmd[9];
+  cmd[0] = FELICA_CMD_REQUEST_SYSTEM_CODE;
+  memcpy(&cmd[1], _felicaIDm, 8);
+
+  uint8_t responseBuf[10 + 2 * 16];
+  uint8_t responseLength;
+  if (!felica_SendCommand(cmd, 9, responseBuf, 8+11+32+2, &responseLength)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Request System Code command failed"));
+    #endif
+    return -1;
+  }
+  *numSystemCode = responseBuf[9];
+  // length check
+  if ( responseLength < 10 + 2 * *numSystemCode ) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Request System Code command failed (wrong response length)"));
+    #endif
+    return -2;
+  }
+
+  uint8_t i;
+  for(i=0; i<*numSystemCode; i++) {
+    systemCodeList[i] = (uint16_t)((responseBuf[10+i*2]<< 8) + responseBuf[10+i*2+1]);
+  }
+
+  return 1;
+}
+
+
+/**************************************************************************/
+/*!
+    @brief  Release FeliCa card
+*/
+/**************************************************************************/
+int8_t Adafruit_PN532::felica_Release()
+{
+  // InRelease
+  pn532_packetbuffer[0] = PN532_COMMAND_INRELEASE;
+  pn532_packetbuffer[1] = 0x00;   // All target
+  #ifdef PN532DEBUG
+    PN532DEBUGPRINT.println(F("Release all FeliCa target"));
+  #endif
+
+  if (! sendCommandCheckAck(pn532_packetbuffer, 2))
+    return -1;  // no ACK
+
+  readdata(pn532_packetbuffer,sizeof(pn532_packetbuffer));
+
+  if ( !felica_checkResponse(PN532_RESPONSE_INRELEASE) ) {
+    return -2;
+  }
+
+  if ((pn532_packetbuffer[7] & 0x3F)!=0) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.print(F("Status code indicates an error: "));
+      PN532DEBUGPRINT.println(pn532_packetbuffer[7], HEX);
+    #endif
+    return -3;
+  }
+
+  /*
+  // Power off RF
+  pn532_packetbuffer[0] = PN532_COMMAND_RFCONFIGURATION;
+  pn532_packetbuffer[1] = 1;    // Config item 1 (RF field )
+  pn532_packetbuffer[2] = 0x00; // AutoRFCA is off, RF is off
+  #ifdef PN532DEBUG
+    PN532DEBUGPRINT.println(F("Turning RF off"));
+  #endif
+
+  if (! sendCommandCheckAck(pn532_packetbuffer, 3))
+    return false;  // no ACK
+
+  // Wait more than 20 ms
+  delay(20);
+
+  // Power on RF
+  pn532_packetbuffer[0] = PN532_COMMAND_RFCONFIGURATION;
+  pn532_packetbuffer[1] = 1;    // Config item 1 (RF field )
+  pn532_packetbuffer[2] = 0x01; // AutoRFCA is off, RF is off
+  #ifdef PN532DEBUG
+    PN532DEBUGPRINT.println(F("Turning RF on"));
+  #endif
+
+  if (! sendCommandCheckAck(pn532_packetbuffer, 3))
+    return false;  // no ACK
+
+  */
+
+  return 1;
+}
+
+
+
+bool Adafruit_PN532::felica_checkResponse(uint8_t PN532_command)
+{
+    if (pn532_packetbuffer[0] != 0 || pn532_packetbuffer[1] != 0 || pn532_packetbuffer[2] != 0xff) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Preamble missing"));
+    #endif
+    return false;
+  }
+
+  uint8_t length = pn532_packetbuffer[3];
+  if (pn532_packetbuffer[4]!=(uint8_t)(~length+1)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Length check invalid"));
+      PN532DEBUGPRINT.println(length,HEX);
+      PN532DEBUGPRINT.println((~length)+1,HEX);
+    #endif
+    return false;
+  }
+
+  if (pn532_packetbuffer[5]!=PN532_PN532TOHOST || pn532_packetbuffer[6]!=PN532_command) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.print(F("Wrong TFI in response: "));
+      PN532DEBUGPRINT.println(pn532_packetbuffer[6],HEX);
+    #endif
+    return false;
+  }
+
+  return true;
+}
+
+
+
 /************** high level communication functions (handles both I2C and SPI) */
 
 
@@ -1664,19 +2237,19 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     checksum += PN532_HOSTTOPN532;
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_STARTCODE2, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmdlen, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~cmdlen + 1, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_HOSTTOPN532, HEX);
+      PrintHex8(PN532_PREAMBLE);
+      PrintHex8(PN532_PREAMBLE);
+      PrintHex8(PN532_STARTCODE2);
+      PrintHex8(cmdlen);
+      PrintHex8(~cmdlen + 1);
+      PrintHex8(PN532_HOSTTOPN532);
     #endif
 
     for (uint8_t i=0; i<cmdlen-1; i++) {
       spi_write(cmd[i]);
       checksum += cmd[i];
       #ifdef PN532DEBUG
-        PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmd[i], HEX);
+        PrintHex8(cmd[i]);
       #endif
     }
 
@@ -1688,8 +2261,8 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     #endif
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~checksum, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_POSTAMBLE, HEX);
+      PrintHex8(~checksum);
+      PrintHex8(PN532_POSTAMBLE);
       PN532DEBUGPRINT.println();
     #endif
   }
@@ -1719,19 +2292,19 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     checksum += PN532_HOSTTOPN532;
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_STARTCODE2, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmdlen, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~cmdlen + 1, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_HOSTTOPN532, HEX);
+      PrintHex8(PN532_PREAMBLE);
+      PrintHex8(PN532_PREAMBLE);
+      PrintHex8(PN532_STARTCODE2);
+      PrintHex8(cmdlen);
+      PrintHex8(~cmdlen + 1);
+      PrintHex8(PN532_HOSTTOPN532);
     #endif
 
     for (uint8_t i=0; i<cmdlen-1; i++) {
       i2c_send(cmd[i]);
       checksum += cmd[i];
       #ifdef PN532DEBUG
-        PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmd[i], HEX);
+        PrintHex8(cmd[i]);
       #endif
     }
 
@@ -1742,8 +2315,8 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     WIRE.endTransmission();
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~checksum, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_POSTAMBLE, HEX);
+      PrintHex8(~checksum);
+      PrintHex8(PN532_POSTAMBLE);
       PN532DEBUGPRINT.println();
     #endif
 
