@@ -1484,6 +1484,63 @@ uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url,
   return 1;
 }
 
+/**************************************************************************/
+/*!
+ Tries to authenticate with password protected NTAG2xx.
+ 
+ @param  pwd          4 byte password
+ 
+ @returns 1 if everything executed properly, 0 for an error
+ */
+/**************************************************************************/
+uint8_t Adafruit_PN532::ntag2xx_Authenticate(byte * pwd) {
+  #ifdef MIFAREDEBUG
+    PN532DEBUGPRINT.println(F("Attempting ntag2xx_Authenticate: "));
+  #endif
+
+  // Prepare the command to send
+  pn532_packetbuffer[0] = PN532_COMMAND_INCOMMUNICATETHRU;
+  pn532_packetbuffer[1] = 0x1B;
+
+  // Password can be 4 bytes (32 bits)
+  memcpy(pn532_packetbuffer + 2, pwd, 4);
+
+  // Send the command and store the response
+  byte result = sendCommandCheckAck(pn532_packetbuffer, 6);
+
+  #if MIFAREDEBUG
+    Adafruit_PN532::PrintHexChar(pn532_packetbuffer, 40);
+  #endif
+
+  // If checking ACK failed, auth failed
+  if (!result) {
+    #if MIFAREDEBUG
+      PN532DEBUGPRINT.println(F("Failed to receive ACK for ntag2xx_Authenticate"));
+    #endif
+
+    return 0;
+  }
+
+  // Read the response packet
+  readdata(pn532_packetbuffer, 12);
+
+  #if MIFAREDEBUG
+    Adafruit_PN532::PrintHexChar(pn532_packetbuffer, 12);
+  #endif
+
+  // Check if we received a correct response
+  if (pn532_packetbuffer[7] != 0x00) {
+    // If auth failed, response should be 00 00 FF 03 FD D5 43 01 E7 00
+    #if MIFAREDEBUG
+      PN532DEBUGPRINT.println(F("Failed auth for ntag2xx_Authenticate"));
+    #endif
+
+    return 0;
+  }
+
+  // Auth worked, return success!
+  return 1;	
+}
 
 /************** high level communication functions (handles both I2C and SPI) */
 
