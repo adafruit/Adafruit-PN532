@@ -1664,19 +1664,19 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     checksum += PN532_HOSTTOPN532;
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_STARTCODE2, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmdlen, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~cmdlen + 1, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_HOSTTOPN532, HEX);
+    PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_PREAMBLE, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_PREAMBLE, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_STARTCODE2, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)cmdlen, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)(~cmdlen + 1), HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_HOSTTOPN532, HEX);
     #endif
 
     for (uint8_t i=0; i<cmdlen-1; i++) {
       spi_write(cmd[i]);
       checksum += cmd[i];
       #ifdef PN532DEBUG
-        PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmd[i], HEX);
+        PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)cmd[i], HEX);
       #endif
     }
 
@@ -1688,8 +1688,8 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     #endif
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~checksum, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_POSTAMBLE, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)~checksum, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_POSTAMBLE, HEX);
       PN532DEBUGPRINT.println();
     #endif
   }
@@ -1719,31 +1719,31 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     checksum += PN532_HOSTTOPN532;
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_STARTCODE2, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmdlen, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~cmdlen + 1, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_HOSTTOPN532, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_PREAMBLE, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_PREAMBLE, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_STARTCODE2, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)cmdlen, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)(~cmdlen + 1), HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_HOSTTOPN532, HEX);
     #endif
 
     for (uint8_t i=0; i<cmdlen-1; i++) {
       i2c_send(cmd[i]);
       checksum += cmd[i];
       #ifdef PN532DEBUG
-        PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(cmd[i], HEX);
+        PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)cmd[i], HEX);
       #endif
     }
 
-    i2c_send(~checksum);
-    i2c_send(PN532_POSTAMBLE);
+    i2c_send((byte)~checksum);
+    i2c_send((byte)PN532_POSTAMBLE);
 
     // I2C STOP
     WIRE.endTransmission();
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(~checksum, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print(PN532_POSTAMBLE, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)~checksum, HEX);
+      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_POSTAMBLE, HEX);
       PN532DEBUGPRINT.println();
     #endif
 
