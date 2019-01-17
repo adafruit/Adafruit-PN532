@@ -135,6 +135,7 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t 
   _hardwareSPI(false)
 {
   pinMode(_ss, OUTPUT);
+  digitalWrite(_ss, HIGH); 
   pinMode(_clk, OUTPUT);
   pinMode(_mosi, OUTPUT);
   pinMode(_miso, INPUT);
@@ -180,6 +181,7 @@ Adafruit_PN532::Adafruit_PN532(uint8_t ss):
   _hardwareSPI(true)
 {
   pinMode(_ss, OUTPUT);
+  digitalWrite(_ss, HIGH); 
 }
 
 /**************************************************************************/
