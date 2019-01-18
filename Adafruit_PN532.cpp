@@ -789,6 +789,115 @@ bool Adafruit_PN532::inListPassiveTarget() {
   return true;
 }
 
+/********************************************************************/
+/*!
+*	@brief  'TgInitAsTarget' is used to configure a PN532 as a tag by the host.
+*
+*/
+/********************************************************************/
+bool Adafruit_PN532::TgInitAsTarget() {
+
+  uint8_t cmd[] = {
+	PN532_COMMAND_TGINITASTARGET,     // 0x8C
+	0x05,               	// Mode: PICC only & Passive only
+	0x08, 0x00,         	// SENS_RES
+	0x12, 0x34, 0x56,   	// NFCID1
+	0x60,               	// SEL_RES
+	0,0,0,0,0,0,0,0,0,		// FeliCaParams
+	0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,	// NFCID3t
+	0, 						// length of general bytes
+	0  						// length of historical bytes
+  };
+
+  if (!sendCommandCheckAck(cmd, sizeof(cmd), 1000)) {
+	#ifdef PN532DEBUG
+	  PN532DEBUGPRINT.print(F("Failed at sendCommandCheckAck command"));
+	#endif
+	return false;
+  }
+  if (!waitready(1000)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Response never received for ADPU..."));
+    #endif
+    return false;
+  }
+  readdata(pn532_packetbuffer, sizeof(pn532_packetbuffer));
+  return pn532_packetbuffer[7] == 0x08;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Gets an APDU from the currently inlisted peer
+
+    @param  response        Pointer to response data
+    @param  responseLength  Pointer to the response data length
+*/
+/**************************************************************************/
+
+bool Adafruit_PN532::TgGetData(uint8_t * response, uint8_t * responseLength) {
+
+  pn532_packetbuffer[0] = PN532_COMMAND_TGGETDATA;    // 0x86
+  if (!sendCommandCheckAck(pn532_packetbuffer, 1, 1000)) {
+	#ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Failed at sendCommandCheckAck"));
+    #endif
+	return false;
+  }
+  if (!waitready(1000)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Response never received for ADPU..."));
+    #endif
+    return false;
+  }
+  readdata(pn532_packetbuffer, sizeof(pn532_packetbuffer));
+  #ifdef PN532DEBUG
+    PN532DEBUGPRINT.print(F("Received Packetbuffer: "));
+    PrintHex(pn532_packetbuffer, sizeof(pn532_packetbuffer));
+  #endif
+  *responseLength = pn532_packetbuffer[3]-3;
+  for(uint8_t i=0; i<*responseLength; i++) {
+	response[i] = pn532_packetbuffer[i+8];
+  }
+  #ifdef PN532DEBUG
+  PN532DEBUGPRINT.print(F("Received GetData Packet: "));
+  PrintHex(response, *responseLength);
+  #endif
+  return pn532_packetbuffer[7] == 0x00;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Sends an APDU to the currently inlisted peer
+
+    @param  send            Pointer to data to send
+    @param  sendLength      Length of the data to send
+*/
+/**************************************************************************/
+
+bool Adafruit_PN532::TgSetData(uint8_t * send, uint8_t sendLength) {
+
+  pn532_packetbuffer[0] = PN532_COMMAND_TGSETDATA;        //0x8E
+  for (uint8_t i=0; i<sendLength; i++) {
+    pn532_packetbuffer[i+1] = send[i];
+  }
+  #ifdef PN532DEBUG
+    PN532DEBUGPRINT.print(F("Sending SetData Packet: "));
+    PrintHex(send, sendLength);
+  #endif
+
+  if (!sendCommandCheckAck(pn532_packetbuffer, sendLength+1, 1000))
+    return false;
+  if (!waitready(1000)) {
+    #ifdef PN532DEBUG
+      PN532DEBUGPRINT.println(F("Response never received for ADPU..."));
+    #endif
+    return false;
+  }
+  readdata(pn532_packetbuffer, sizeof(pn532_packetbuffer));
+  return pn532_packetbuffer[8] == 0x00;
+}
+
 
 /***** Mifare Classic Functions ******/
 
