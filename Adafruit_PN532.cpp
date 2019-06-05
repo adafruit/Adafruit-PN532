@@ -608,6 +608,7 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, ui
   if (pn532_packetbuffer[7] != 1)
     return 0;
 
+  _inListedTag = pn532_packetbuffer[8];
   uint16_t sens_res = pn532_packetbuffer[9];
   sens_res <<= 8;
   sens_res |= pn532_packetbuffer[10];
