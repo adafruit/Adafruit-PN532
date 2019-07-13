@@ -40,6 +40,7 @@
 #define PN532_STARTCODE1                    (0x00)
 #define PN532_STARTCODE2                    (0xFF)
 #define PN532_POSTAMBLE                     (0x00)
+#define PN532_EXTENDED_FRAME_FIXED_VALUE    (0xFF)
 
 #define PN532_HOSTTOPN532                   (0xD4)
 #define PN532_PN532TOHOST                   (0xD5)
@@ -170,7 +171,7 @@ class Adafruit_PN532{
   
   // ISO14443A functions
   bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t * uid, uint8_t * uidLength, uint16_t timeout = 0); //timeout 0 means no timeout - will block forever.
-  bool inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint8_t * responseLength);
+  bool inDataExchange(uint8_t * send, uint8_t sendLength, uint8_t * response, uint16_t * responseLength);
   bool inListPassiveTarget();
   uint8_t AsTarget();
   uint8_t getDataTarget(uint8_t* cmd, uint8_t* cmdlen);
@@ -209,7 +210,7 @@ class Adafruit_PN532{
   bool    _hardwareSPI;  // True is using hardware SPI, false if using software SPI.
 
   // Low level communication functions that handle both SPI and I2C.
-  void readdata(uint8_t* buff, uint8_t n);
+  void readdata(uint8_t* buff, uint16_t n);
   void writecommand(uint8_t* cmd, uint8_t cmdlen);
   bool isready();
   bool waitready(uint16_t timeout);
