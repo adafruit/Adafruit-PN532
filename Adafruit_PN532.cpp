@@ -1397,7 +1397,7 @@ uint8_t Adafruit_PN532::ntag2xx_WritePage (uint8_t page, uint8_t * data)
     @returns 1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
-uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url, uint8_t dataLen)
+uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url, uint16_t dataLen)
 {
   uint8_t pageBuffer[4] = { 0, 0, 0, 0 };
 
@@ -1405,7 +1405,7 @@ uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url,
   uint8_t wrapperSize = 12;
 
   // Figure out how long the string is
-  uint8_t len = strlen(url);
+  uint16_t len = strlen(url);
 
   // Make sure the URI payload will fit in dataLen (include 0xFE trailer)
   if ((len < 1) || (len+1 > (dataLen-wrapperSize)))
@@ -1549,7 +1549,9 @@ bool Adafruit_PN532::waitready(uint16_t timeout) {
     if (timeout != 0) {
       timer += 10;
       if (timer > timeout) {
-        PN532DEBUGPRINT.println("TIMEOUT!");
+        #ifdef PN532DEBUG
+          PN532DEBUGPRINT.println("TIMEOUT!");
+        #endif
         return false;
       }
     }
