@@ -1905,3 +1905,81 @@ uint8_t Adafruit_PN532::spi_read(void) {
 
   return x;
 }
+
+
+bool Adafruit_PN532::ReadRegister(uint8_t* reg, uint8_t* result, uint8_t len) {
+  uint8_t cmd[1 + 2 * len];
+  cmd[0] = 0x06; //ReadRegister
+  for (uint8_t i = 0; i < 2 * len; i++) {
+    cmd[i + 1] = reg[i];
+  }
+  if (sendCommandCheckAck(cmd, 1 + 2 * len)) {
+    readdata(result, 6 + len + 2);
+    return true;
+  } else {
+    return false;
+  }
+}
+bool Adafruit_PN532::WriteRegister(uint8_t* reg, uint8_t len) {
+  uint8_t cmd[1 + 3 * len];
+  uint8_t result[6 + 0 + 2];
+  cmd[0] = 0x08; //WriteRegister
+  for (uint8_t i = 0; i < 3 * len; i++) {
+    cmd[i + 1] = reg[i];
+  }
+  if (sendCommandCheckAck(cmd, 1 + 3 * len)) {
+    readdata(result, 6 + 0 + 2);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Adafruit_PN532::InCommunicateThru(uint8_t* data, uint8_t len) {
+  uint8_t cmd[1 + len];
+  cmd[0] = 0x42; //InCommunicateThru
+  for (uint8_t i = 0; i < len; i++) {
+    cmd[i + 1] = data[i];
+  }
+  if (sendCommandCheckAck(cmd, 1 + len)) {
+
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Adafruit_PN532::UnlockBackdoor() {
+  //HALT
+    uint8_t regState1[6] = {0x63, 0x02, 0x00, 0x63, 0x03, 0x00};
+    if (!WriteRegister(regState1, 6 / 3)) {
+      return false;
+    }
+  uint8_t halt[4] = {0x50, 0x00, 0x57, 0xcd};
+  if (!InCommunicateThru(halt, 4)) {
+    return false;
+  }
+  //UNLOCK1
+    uint8_t reg1[3] = {0x63, 0x3d, 0x07};
+    if (!WriteRegister(reg1, 3 / 3)) {
+      return false;
+    }
+  uint8_t unlock1[1] = {0x40};
+  if (!InCommunicateThru(unlock1, 1)) {
+    return false;
+  }
+  //UNLOCK2
+    uint8_t reg2[3] = {0x63, 0x3d, 0x00};
+    if (!WriteRegister(reg2, 3 / 3)) {
+      return false;
+    }
+  uint8_t unlock2[1] = {0x43};
+  if (!InCommunicateThru(unlock2, 1)) {
+    return false;
+  }
+    uint8_t regState2[6] = {0x63, 0x02, 0x80, 0x63, 0x03, 0x80};
+    if (!WriteRegister(regState2, 6 / 3)) {
+      return false;
+    }
+  return true;
+}
