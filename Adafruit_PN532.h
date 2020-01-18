@@ -197,6 +197,11 @@ class Adafruit_PN532{
   // Help functions to display formatted text
   static void PrintHex(const byte * data, const uint32_t numBytes);
   static void PrintHexChar(const byte * pbtData, const uint32_t numBytes);
+  
+  bool ReadRegister(uint8_t* reg, uint8_t* result, uint8_t len);
+  bool WriteRegister(uint8_t* reg, uint8_t len);
+  bool InCommunicateThru(uint8_t* data, uint8_t len);
+  bool UnlockBackdoor();
 
  private:
   uint8_t _ss, _clk, _mosi, _miso;
