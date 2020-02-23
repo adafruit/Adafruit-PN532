@@ -63,7 +63,7 @@ byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
 byte pn532response_firmwarevers[] = {0x00, 0xFF, 0x06, 0xFA, 0xD5, 0x03};
 
 // Uncomment these lines to enable debug output for PN532(SPI) and/or MIFARE related code
-// #define PN532DEBUG
+ #define PN532DEBUG
 // #define MIFAREDEBUG
 
 // If using Native Port on Arduino Zero or Due define as SerialUSB
@@ -1507,13 +1507,9 @@ bool Adafruit_PN532::readack() {
 /**************************************************************************/
 bool Adafruit_PN532::isready() {
   if (_usingSPI) {
-    Serial.print("SPI ready? 0x");
-
     uint8_t cmd = PN532_SPI_STATREAD;
     uint8_t reply;
     spi_dev->write_then_read(&cmd, 1, &reply, 1);
-
-    Serial.println(reply, HEX);
     // Check if status is ready.
     return reply == PN532_SPI_READY;
   }
@@ -1555,34 +1551,18 @@ bool Adafruit_PN532::waitready(uint16_t timeout) {
 */
 /**************************************************************************/
 void Adafruit_PN532::readdata(uint8_t* buff, uint8_t n) {
-  if (_usingSPI) {
-    // SPI write.
-    #ifdef SPI_HAS_TRANSACTION
-      if (_hardwareSPI) SPI.beginTransaction(PN532_SPI_SETTING);
-    #endif
-    digitalWrite(_ss, LOW);
-    delay(2);
-    spi_write(PN532_SPI_DATAREAD);
+  if (spi_dev) {
+    uint8_t cmd = PN532_SPI_DATAREAD;
+    
+    spi_dev->write_then_read(&cmd, 1, buff, n);
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F("Reading: "));
-    #endif
+    PN532DEBUGPRINT.print(F("Reading: "));
     for (uint8_t i=0; i<n; i++) {
-      delay(1);
-      buff[i] = spi_read();
-      #ifdef PN532DEBUG
-        PN532DEBUGPRINT.print(F(" 0x"));
-        PN532DEBUGPRINT.print(buff[i], HEX);
-      #endif
+      PN532DEBUGPRINT.print(F(" 0x"));
+      PN532DEBUGPRINT.print(buff[i], HEX);
     }
-
-    #ifdef PN532DEBUG
-      PN532DEBUGPRINT.println();
-    #endif
-
-    digitalWrite(_ss, HIGH);
-    #ifdef SPI_HAS_TRANSACTION
-      if (_hardwareSPI) SPI.endTransaction();
+    PN532DEBUGPRINT.println();
     #endif
   }
   else {
@@ -1721,62 +1701,42 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
   if (_usingSPI) {
     // SPI command write.
     uint8_t checksum;
-
+    uint8_t packet[8 + cmdlen] = {0};
+    uint8_t *p = packet;
     cmdlen++;
 
-    #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F("\nSending: "));
-    #endif
+    p[0] = PN532_SPI_DATAWRITE; p++;
 
-    #ifdef SPI_HAS_TRANSACTION
-      if (_hardwareSPI) SPI.beginTransaction(PN532_SPI_SETTING);
-    #endif
-    digitalWrite(_ss, LOW);
-    delay(2);     // or whatever the delay is for waking up the board
-    spi_write(PN532_SPI_DATAWRITE);
-
+    p[0] = PN532_PREAMBLE; p++;
+    p[0] = PN532_PREAMBLE; p++;
+    p[0] = PN532_STARTCODE2; p++;
     checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
-    spi_write(PN532_PREAMBLE);
-    spi_write(PN532_PREAMBLE);
-    spi_write(PN532_STARTCODE2);
 
-    spi_write(cmdlen);
-    spi_write(~cmdlen + 1);
+    p[0] = cmdlen; p++;
+    p[0] = ~cmdlen + 1; p++;
 
-    spi_write(PN532_HOSTTOPN532);
+    p[0] = PN532_HOSTTOPN532; p++;
     checksum += PN532_HOSTTOPN532;
 
-    #ifdef PN532DEBUG
-    PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_PREAMBLE, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_STARTCODE2, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)cmdlen, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)(~cmdlen + 1), HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_HOSTTOPN532, HEX);
-    #endif
-
     for (uint8_t i=0; i<cmdlen-1; i++) {
-      spi_write(cmd[i]);
+      p[0] = cmd[i];
+      p++;
       checksum += cmd[i];
-      #ifdef PN532DEBUG
-        PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)cmd[i], HEX);
-      #endif
     }
 
-    spi_write(~checksum);
-    spi_write(PN532_POSTAMBLE);
-    digitalWrite(_ss, HIGH);
-    #ifdef SPI_HAS_TRANSACTION
-      if (_hardwareSPI) SPI.endTransaction();
-    #endif
+    p[0] = ~checksum; p++;
+    p[0] = PN532_POSTAMBLE; p++;
 
     #ifdef PN532DEBUG
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)~checksum, HEX);
-      PN532DEBUGPRINT.print(F(" 0x")); PN532DEBUGPRINT.print((byte)PN532_POSTAMBLE, HEX);
-      PN532DEBUGPRINT.println();
+    Serial.print("Sending : ");
+    for (int i=0; i < 8 + cmdlen; i++) {
+      Serial.print("0x"); Serial.print(packet[i], HEX); Serial.print(", ");
+    }
+    Serial.println();
     #endif
-  }
-  else {
+
+    spi_dev->write(packet, 8 + cmdlen);
+  } else {
     // I2C command write.
     uint8_t checksum;
 
@@ -1831,65 +1791,4 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
     #endif
 
   }
-}
-/************** low level SPI */
-
-/**************************************************************************/
-/*!
-    @brief  Low-level SPI write wrapper
-
-    @param  c       8-bit command to write to the SPI bus
-*/
-/**************************************************************************/
-void Adafruit_PN532::spi_write(uint8_t c) {
-  if (_hardwareSPI) {
-    // Hardware SPI write.
-    SPI.transfer(c);
-  }
-  else {
-    // Software SPI write.
-    int8_t i;
-    digitalWrite(_clk, HIGH);
-
-    for (i=0; i<8; i++) {
-      digitalWrite(_clk, LOW);
-      if (c & _BV(i)) {
-        digitalWrite(_mosi, HIGH);
-      } else {
-        digitalWrite(_mosi, LOW);
-      }
-      digitalWrite(_clk, HIGH);
-    }
-  }
-}
-
-/**************************************************************************/
-/*!
-    @brief  Low-level SPI read wrapper
-
-    @returns The 8-bit value that was read from the SPI bus
-*/
-/**************************************************************************/
-uint8_t Adafruit_PN532::spi_read(void) {
-  int8_t i, x;
-  x = 0;
-
-  if (_hardwareSPI) {
-    // Hardware SPI read.
-    x = SPI.transfer(0x00);
-  }
-  else {
-    // Software SPI read.
-    digitalWrite(_clk, HIGH);
-
-    for (i=0; i<8; i++) {
-      if (digitalRead(_miso)) {
-        x |= _BV(i);
-      }
-      digitalWrite(_clk, LOW);
-      digitalWrite(_clk, HIGH);
-    }
-  }
-
-  return x;
 }

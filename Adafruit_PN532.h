@@ -214,8 +214,6 @@ class Adafruit_PN532{
 
   // SPI-specific functions.
   Adafruit_SPIDevice *spi_dev = NULL;
-  void    spi_write(uint8_t c);
-  uint8_t spi_read(void);
 
   // Note there are i2c_read and i2c_write inline functions defined in the .cpp file.
 };
