@@ -139,6 +139,8 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t 
   pinMode(_clk, OUTPUT);
   pinMode(_mosi, OUTPUT);
   pinMode(_miso, INPUT);
+  spi_dev = new Adafruit_SPIDevice(_ss, _clk, _miso, _mosi, 1000000, 
+				   SPI_BITORDER_LSBFIRST, SPI_MODE0); 
 }
 
 /**************************************************************************/
@@ -181,7 +183,8 @@ Adafruit_PN532::Adafruit_PN532(uint8_t ss):
   _hardwareSPI(true)
 {
   pinMode(_ss, OUTPUT);
-  digitalWrite(_ss, HIGH); 
+  digitalWrite(_ss, HIGH);
+  spi_dev = new Adafruit_SPIDevice(_ss, 1000000, SPI_BITORDER_LSBFIRST, SPI_MODE0);
 }
 
 /**************************************************************************/
@@ -190,21 +193,14 @@ Adafruit_PN532::Adafruit_PN532(uint8_t ss):
 */
 /**************************************************************************/
 void Adafruit_PN532::begin() {
-  if (_usingSPI) {
+  if (spi_dev != NULL) {
     // SPI initialization
-    if (_hardwareSPI) {
-      SPI.begin();
+    spi_dev->begin();
 
-      #ifdef SPI_HAS_TRANSACTION
-        SPI.beginTransaction(PN532_SPI_SETTING);
-      #else
-        SPI.setDataMode(SPI_MODE0);
-        SPI.setBitOrder(LSBFIRST);
-        SPI.setClockDivider(PN532_SPI_CLOCKDIV);
-      #endif
-    }
-    digitalWrite(_ss, LOW);
-
+    digitalWrite(_ss, HIGH);
+    #ifdef SPI_HAS_TRANSACTION
+      if (_hardwareSPI) SPI.endTransaction();
+    #endif
     delay(1000);
 
     // not exactly sure why but we have to send a dummy command to get synced up
@@ -1511,23 +1507,15 @@ bool Adafruit_PN532::readack() {
 /**************************************************************************/
 bool Adafruit_PN532::isready() {
   if (_usingSPI) {
-    // SPI read status and check if ready.
-    #ifdef SPI_HAS_TRANSACTION
-      if (_hardwareSPI) SPI.beginTransaction(PN532_SPI_SETTING);
-    #endif
-    digitalWrite(_ss, LOW);
-    delay(2);
-    spi_write(PN532_SPI_STATREAD);
-    // read byte
-    uint8_t x = spi_read();
+    Serial.print("SPI ready? 0x");
 
-    digitalWrite(_ss, HIGH);
-    #ifdef SPI_HAS_TRANSACTION
-      if (_hardwareSPI) SPI.endTransaction();
-    #endif
+    uint8_t cmd = PN532_SPI_STATREAD;
+    uint8_t reply;
+    spi_dev->write_then_read(&cmd, 1, &reply, 1);
 
+    Serial.println(reply, HEX);
     // Check if status is ready.
-    return x == PN532_SPI_READY;
+    return reply == PN532_SPI_READY;
   }
   else {
     // I2C check if status is ready by IRQ line being pulled low.

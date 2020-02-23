@@ -30,11 +30,8 @@
 #ifndef ADAFRUIT_PN532_H
 #define ADAFRUIT_PN532_H
 
-#if ARDUINO >= 100
- #include "Arduino.h"
-#else
- #include "WProgram.h"
-#endif
+#include "Arduino.h"
+#include <Adafruit_SPIDevice.h>
 
 #define PN532_PREAMBLE                      (0x00)
 #define PN532_STARTCODE1                    (0x00)
@@ -163,7 +160,7 @@ class Adafruit_PN532{
   // Generic PN532 functions
   bool     SAMConfig(void);
   uint32_t getFirmwareVersion(void);
-  bool     sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 1000);  
+  bool     sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout = 100);  
   bool     writeGPIO(uint8_t pinstate);
   uint8_t  readGPIO(void);
   bool     setPassiveActivationRetries(uint8_t maxRetries);
@@ -199,7 +196,7 @@ class Adafruit_PN532{
   static void PrintHexChar(const byte * pbtData, const uint32_t numBytes);
 
  private:
-  uint8_t _ss, _clk, _mosi, _miso;
+  uint8_t _clk, _miso, _mosi, _ss;
   uint8_t _irq, _reset;
   uint8_t _uid[7];       // ISO14443A uid
   uint8_t _uidLen;       // uid len
@@ -216,6 +213,7 @@ class Adafruit_PN532{
   bool readack();
 
   // SPI-specific functions.
+  Adafruit_SPIDevice *spi_dev = NULL;
   void    spi_write(uint8_t c);
   uint8_t spi_read(void);
 
