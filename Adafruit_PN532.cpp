@@ -317,7 +317,7 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
     return 0;
   }
 
-  int offset = _usingSPI ? 6 : 7;  // Skip a response byte when using I2C to ignore extra data.
+  int offset = 7;
   response = pn532_packetbuffer[offset++];
   response <<= 8;
   response |= pn532_packetbuffer[offset++];
@@ -344,7 +344,7 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
 /**************************************************************************/
 // default timeout of one second
 bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t timeout) {
-  uint16_t timer = 0;
+  //uint16_t timer = 0;
 
   // write the command
   writecommand(cmd, cmdlen);
@@ -370,7 +370,7 @@ bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t 
 
   // For SPI only wait for the chip to be ready again.
   // This is unnecessary with I2C.
-  if (_usingSPI) {
+  if (spi_dev != NULL) {
     if (!waitready(timeout)) {
       return false;
     }
@@ -401,7 +401,7 @@ bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen, uint16_t 
 */
 /**************************************************************************/
 bool Adafruit_PN532::writeGPIO(uint8_t pinstate) {
-  uint8_t errorbit;
+  //uint8_t errorbit;
 
   // Make sure pinstate does not try to toggle P32 or P34
   pinstate |= (1 << PN532_GPIO_P32) | (1 << PN532_GPIO_P34);
@@ -428,7 +428,7 @@ bool Adafruit_PN532::writeGPIO(uint8_t pinstate) {
     PN532DEBUGPRINT.println();
   #endif
 
-  int offset = _usingSPI ? 5 : 6;
+  int offset = 6;
   return  (pn532_packetbuffer[offset] == 0x0F);
 }
 
@@ -466,7 +466,7 @@ uint8_t Adafruit_PN532::readGPIO(void) {
     b8              Interface Mode Pins (not used ... bus select pins)
     b9..10          checksum */
 
-  int p3offset = _usingSPI ? 6 : 7;
+  int p3offset = 7;
 
   #ifdef PN532DEBUG
     PN532DEBUGPRINT.print(F("Received: "));
@@ -510,7 +510,7 @@ bool Adafruit_PN532::SAMConfig(void) {
   // read data packet
   readdata(pn532_packetbuffer, 8);
 
-  int offset = _usingSPI ? 5 : 6;
+  int offset = 6;
   return  (pn532_packetbuffer[offset] == 0x15);
 }
 
@@ -838,7 +838,7 @@ bool Adafruit_PN532::mifareclassic_IsTrailerBlock (uint32_t uiBlock)
 /**************************************************************************/
 uint8_t Adafruit_PN532::mifareclassic_AuthenticateBlock (uint8_t * uid, uint8_t uidLen, uint32_t blockNumber, uint8_t keyNumber, uint8_t * keyData)
 {
-  uint8_t len;
+  //uint8_t len;
   uint8_t i;
 
   // Hang on to the key and uid data
@@ -1051,7 +1051,7 @@ uint8_t Adafruit_PN532::mifareclassic_WriteNDEFURI (uint8_t sectorNumber, uint8_
   // in NDEF records
 
   // Setup the sector buffer (w/pre-formatted TLV wrapper and NDEF message)
-  uint8_t sectorbuffer1[16] = {0x00, 0x00, 0x03, len+5, 0xD1, 0x01, len+1, 0x55, uriIdentifier, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  uint8_t sectorbuffer1[16] = {0x00, 0x00, 0x03, (uint8_t)(len+5), 0xD1, 0x01, (uint8_t)(len+1), 0x55, uriIdentifier, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   uint8_t sectorbuffer2[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   uint8_t sectorbuffer3[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   uint8_t sectorbuffer4[16] = {0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7, 0x7F, 0x07, 0x88, 0x40, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -1419,10 +1419,10 @@ uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI (uint8_t uriIdentifier, char * url,
     0x44,         /* Size in bytes of a page and the number of bytes each lock bit can lock (4 bit + 4 bits) */
     /* NDEF Message TLV - URI Record */
     0x03,         /* Tag Field (0x03 = NDEF Message) */
-    len+5,        /* Payload Length (not including 0xFE trailer) */
+    (uint8_t)(len+5),        /* Payload Length (not including 0xFE trailer) */
     0xD1,         /* NDEF Record Header (TNF=0x1:Well known record + SR + ME + MB) */
     0x01,         /* Type Length for the record type indicator */
-    len+1,        /* Payload len */
+    (uint8_t)(len+1),        /* Payload len */
     0x55,         /* Record Type Indicator (0x55 or 'U' = URI Record) */
     uriIdentifier /* URI Prefix (ex. 0x01 = "http://www.") */
   };
@@ -1506,7 +1506,7 @@ bool Adafruit_PN532::readack() {
 */
 /**************************************************************************/
 bool Adafruit_PN532::isready() {
-  if (_usingSPI) {
+  if (spi_dev != NULL) {
     uint8_t cmd = PN532_SPI_STATREAD;
     uint8_t reply;
     spi_dev->write_then_read(&cmd, 1, &reply, 1);
@@ -1553,7 +1553,8 @@ bool Adafruit_PN532::waitready(uint16_t timeout) {
 void Adafruit_PN532::readdata(uint8_t* buff, uint8_t n) {
   if (spi_dev) {
     uint8_t cmd = PN532_SPI_DATAREAD;
-    
+
+    // read response byte but then drop it
     spi_dev->write_then_read(&cmd, 1, buff, n);
 
     #ifdef PN532DEBUG
@@ -1626,7 +1627,7 @@ uint8_t Adafruit_PN532::AsTarget() {
   // read data packet
   readdata(pn532_packetbuffer, 8);
 
-  int offset = _usingSPI ? 5 : 6;
+  int offset = 6;
   return  (pn532_packetbuffer[offset] == 0x15);
 }
 /**************************************************************************/
@@ -1684,7 +1685,7 @@ uint8_t Adafruit_PN532::setDataTarget(uint8_t* cmd, uint8_t cmdlen) {
   //cmdl = 0
   cmdlen = length;
 
-  int offset = _usingSPI ? 5 : 6;
+  int offset = 6;
   return  (pn532_packetbuffer[offset] == 0x15);
 }
 
@@ -1698,7 +1699,7 @@ uint8_t Adafruit_PN532::setDataTarget(uint8_t* cmd, uint8_t cmdlen) {
 */
 /**************************************************************************/
 void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
-  if (_usingSPI) {
+  if (spi_dev != NULL) {
     // SPI command write.
     uint8_t checksum;
     uint8_t packet[8 + cmdlen] = {0};
@@ -1729,7 +1730,7 @@ void Adafruit_PN532::writecommand(uint8_t* cmd, uint8_t cmdlen) {
 
     #ifdef PN532DEBUG
     Serial.print("Sending : ");
-    for (int i=0; i < 8 + cmdlen; i++) {
+    for (int i=1; i < 8 + cmdlen; i++) {
       Serial.print("0x"); Serial.print(packet[i], HEX); Serial.print(", ");
     }
     Serial.println();
