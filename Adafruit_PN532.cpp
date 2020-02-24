@@ -48,7 +48,7 @@
 #include "Arduino.h"
 
 #include <Wire.h>
-#ifdef __SAM3X8E__ // arduino due 
+#ifdef __SAM3X8E__ // arduino due
 #define WIRE Wire1
 #else
 #define WIRE Wire
