@@ -1670,11 +1670,11 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
 
     p[0] = PN532_PREAMBLE;
     p++;
-    p[0] = PN532_PREAMBLE;
+    p[0] = PN532_STARTCODE1;
     p++;
     p[0] = PN532_STARTCODE2;
     p++;
-    checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
+    checksum = PN532_PREAMBLE + PN532_STARTCODE1 + PN532_STARTCODE2;
 
     p[0] = cmdlen;
     p++;
