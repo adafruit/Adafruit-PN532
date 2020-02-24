@@ -62,10 +62,10 @@ byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
 byte pn532response_firmwarevers[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5};
 
 // Uncomment these lines to enable debug output for PN532(SPI) and/or MIFARE
-// related code 
+// related code
 
-#define PN532DEBUG 
-//#define MIFAREDEBUG
+// #define PN532DEBUG
+// #define MIFAREDEBUG
 
 // If using Native Port on Arduino Zero or Due define as SerialUSB
 #define PN532DEBUGPRINT Serial
@@ -253,7 +253,7 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
 
   // check some basic stuff
   if (0 != memcmp((char *)pn532_packetbuffer,
-		  (char *)pn532response_firmwarevers, 6)) {
+                  (char *)pn532response_firmwarevers, 6)) {
 #ifdef PN532DEBUG
     PN532DEBUGPRINT.println(F("Firmware doesn't match!"));
 #endif
