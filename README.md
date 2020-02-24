@@ -1,4 +1,25 @@
-# Adafruit-PN532
+# Adafruit-PN532 [![Build Status](https://github.com/adafruit/Adafruit-PN532/workflows/Arduino%20Library%20CI/badge.svg)](https://github.com/adafruit/Adafruit-PN532/actions)
+
+
+This is a library for the Adafruit PN532 NFC/RFID breakout boards
+This library works with the Adafruit NFC breakout 
+
+  * https://www.adafruit.com/products/364
+ 
+Check out the links above for our tutorials and wiring diagrams 
+These chips use I2C or SPI to communicate.
+
+Adafruit invests time and resources providing this open source code, 
+please support Adafruit and open-source hardware by purchasing 
+products from Adafruit!
+
+Written by Limor Fried/Ladyada & Kevin Townsend for Adafruit Industries.  
+BSD license, check license.txt for more information
+All text above must be included in any redistribution
+
+To install, use the Arduino Library Manager and search for "Adafruit PN532" and install the library. Adafruit BusIO library is also required
+
+
 <!-- START COMPATIBILITY TABLE -->
 
 ## Compatibility
