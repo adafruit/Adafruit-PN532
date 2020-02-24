@@ -112,7 +112,7 @@ void loop(void) {
       // NTAG 216       231     4             225      
 
       Serial.println("");
-      Serial.println("Writing 0x00 0x00 0x00 0x00 to pages 4..29");
+      Serial.println("Writing 0x00 0x00 0x00 0x00 to pages 4..39");
       Serial.println("");
       for (uint8_t i = 4; i < 39; i++) 
       {
