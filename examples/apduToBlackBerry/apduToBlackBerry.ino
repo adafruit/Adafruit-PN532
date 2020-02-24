@@ -62,17 +62,10 @@ void showColor() {
   analogWrite(B_PIN,b);
 }
 
-#if defined(ARDUINO_ARCH_SAMD)
-// for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
-// also change #define in Adafruit_PN532.cpp library file
-   #define Serial SerialUSB
-#endif
 
 void setup() {
-  #ifndef ESP8266
-    while (!Serial); // for Leonardo/Micro/Zero
-  #endif
   Serial.begin(115200);
+  while (!Serial) delay(10); // for Leonardo/Micro/Zero
 
   pinMode(R_PIN,OUTPUT);
   pinMode(G_PIN,OUTPUT);

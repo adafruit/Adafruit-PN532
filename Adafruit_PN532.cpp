@@ -48,11 +48,10 @@
 #include "Arduino.h"
 
 #include <Wire.h>
-#if defined(__AVR__) || defined(__i386__) || defined(ARDUINO_ARCH_SAMD) ||     \
-    defined(ESP8266) || defined(ARDUINO_ARCH_STM32)
-#define WIRE Wire
-#else // Arduino Due
+#ifdef __SAM3X8E__ // arduino due 
 #define WIRE Wire1
+#else
+#define WIRE Wire
 #endif
 
 #include <SPI.h>
