@@ -249,8 +249,8 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
   readdata(pn532_packetbuffer, 12);
 
   // check some basic stuff
-  if (0 != strncmp((char *)pn532_packetbuffer,
-                   (char *)pn532response_firmwarevers, 6)) {
+  if (0 != memcmp((char *)pn532_packetbuffer,
+		  (char *)pn532response_firmwarevers, 6)) {
 #ifdef PN532DEBUG
     PN532DEBUGPRINT.println(F("Firmware doesn't match!"));
 #endif
@@ -1452,7 +1452,7 @@ bool Adafruit_PN532::readack() {
 
   readdata(ackbuff, 6);
 
-  return (0 == strncmp((char *)ackbuff, (char *)pn532ack, 6));
+  return (0 == memcmp((char *)ackbuff, (char *)pn532ack, 6));
 }
 
 /**************************************************************************/
