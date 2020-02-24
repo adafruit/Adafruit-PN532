@@ -1,12 +1,11 @@
 /**************************************************************************/
 /*! 
-    @file     ntag2xx_erase.pde
+    @file     readntag203.pde
     @author   KTOWN (Adafruit Industries)
     @license  BSD (see license.txt)
 
     This example will wait for any NTAG203 or NTAG213 card or tag,
-    and will attempt to erase the user data section of the card (setting
-    all user bytes to 0x00)
+    and will attempt to read from it.
 
     This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
     This library works with the Adafruit NFC breakout 
@@ -50,17 +49,11 @@ Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 // Or use this line for a breakout or shield with an I2C connection:
 //Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 
-#if defined(ARDUINO_ARCH_SAMD)
-// for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
-// also change #define in Adafruit_PN532.cpp library file
-   #define Serial SerialUSB
-#endif
 
 void setup(void) {
-  #ifndef ESP8266
-    while (!Serial); // for Leonardo/Micro/Zero
-  #endif
   Serial.begin(115200);
+  while (!Serial) delay(10); // for Leonardo/Micro/Zero
+
   Serial.println("Hello!");
 
   nfc.begin();
@@ -118,16 +111,12 @@ void loop(void) {
       // NTAG 215       135     4             129
       // NTAG 216       231     4             225      
 
-      Serial.println("");
-      Serial.println("Writing 0x00 0x00 0x00 0x00 to pages 4..29");
-      Serial.println("");
-      for (uint8_t i = 4; i < 39; i++) 
+      for (uint8_t i = 0; i < 42; i++) 
       {
-        memset(data, 0, 4);
-        success = nfc.ntag2xx_WritePage(i, data);
+        success = nfc.ntag2xx_ReadPage(i, data);
         
         // Display the current page number
-        Serial.print("Page ");
+        Serial.print("PAGE ");
         if (i < 10)
         {
           Serial.print("0");
@@ -142,11 +131,12 @@ void loop(void) {
         // Display the results, depending on 'success'
         if (success) 
         {
-          Serial.println("Erased");
+          // Dump the page data
+          nfc.PrintHexChar(data, 4);
         }
         else
         {
-          Serial.println("Unable to write to the requested page!");
+          Serial.println("Unable to read the requested page!");
         }
       }      
     }
