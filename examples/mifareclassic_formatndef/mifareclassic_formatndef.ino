@@ -75,10 +75,9 @@ uint8_t ndefprefix = NDEF_URIPREFIX_HTTP_WWWDOT;
 
 
 void setup(void) {
-  #ifndef ESP8266
-    while (!Serial); // for Leonardo/Micro/Zero
-  #endif
   Serial.begin(115200);
+  while (!Serial) delay(10); // for Leonardo/Micro/Zero
+
   Serial.println("Looking for PN532...");
 
   nfc.begin();

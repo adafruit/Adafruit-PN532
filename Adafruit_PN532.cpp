@@ -1660,7 +1660,7 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
   if (spi_dev != NULL) {
     // SPI command write.
     uint8_t checksum;
-    uint8_t packet[8 + cmdlen] = {0};
+    uint8_t packet[8 + cmdlen];
     uint8_t *p = packet;
     cmdlen++;
 
