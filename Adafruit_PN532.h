@@ -196,14 +196,11 @@ class Adafruit_PN532{
   static void PrintHexChar(const byte * pbtData, const uint32_t numBytes);
 
  private:
-  uint8_t _clk, _miso, _mosi, _ss;
-  uint8_t _irq, _reset;
-  uint8_t _uid[7];       // ISO14443A uid
-  uint8_t _uidLen;       // uid len
-  uint8_t _key[6];       // Mifare Classic key
-  uint8_t _inListedTag;  // Tg number of inlisted tag.
-  bool    _usingSPI;     // True if using SPI, false if using I2C.
-  bool    _hardwareSPI;  // True is using hardware SPI, false if using software SPI.
+  int8_t _irq=-1, _reset=-1;
+  int8_t _uid[7];       // ISO14443A uid
+  int8_t _uidLen;       // uid len
+  int8_t _key[6];       // Mifare Classic key
+  int8_t _inListedTag;  // Tg number of inlisted tag.
 
   // Low level communication functions that handle both SPI and I2C.
   void readdata(uint8_t* buff, uint8_t n);
