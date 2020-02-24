@@ -59,10 +59,13 @@
 #include "Adafruit_PN532.h"
 
 byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
-byte pn532response_firmwarevers[] = {0x00, 0xFF, 0x06, 0xFA, 0xD5, 0x03};
+byte pn532response_firmwarevers[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5};
 
 // Uncomment these lines to enable debug output for PN532(SPI) and/or MIFARE
-// related code #define PN532DEBUG #define MIFAREDEBUG
+// related code 
+
+#define PN532DEBUG 
+//#define MIFAREDEBUG
 
 // If using Native Port on Arduino Zero or Due define as SerialUSB
 #define PN532DEBUGPRINT Serial
@@ -1450,7 +1453,12 @@ uint8_t Adafruit_PN532::ntag2xx_WriteNDEFURI(uint8_t uriIdentifier, char *url,
 bool Adafruit_PN532::readack() {
   uint8_t ackbuff[6];
 
-  readdata(ackbuff, 6);
+  if (spi_dev) {
+    uint8_t cmd = PN532_SPI_DATAREAD;
+    spi_dev->write_then_read(&cmd, 1, ackbuff, 6);
+  } else {
+    readdata(ackbuff, 6);
+  }
 
   return (0 == memcmp((char *)ackbuff, (char *)pn532ack, 6));
 }
@@ -1511,7 +1519,6 @@ void Adafruit_PN532::readdata(uint8_t *buff, uint8_t n) {
   if (spi_dev) {
     uint8_t cmd = PN532_SPI_DATAREAD;
 
-    // read response byte but then drop it
     spi_dev->write_then_read(&cmd, 1, buff, n);
 
 #ifdef PN532DEBUG
