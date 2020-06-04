@@ -50,17 +50,10 @@ Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 // Or use this line for a breakout or shield with an I2C connection:
 //Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 
-#if defined(ARDUINO_ARCH_SAMD)
-// for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
-// also change #define in Adafruit_PN532.cpp library file
-   #define Serial SerialUSB
-#endif
-
 void setup(void) {
-  #ifndef ESP8266
-    while (!Serial); // for Leonardo/Micro/Zero
-  #endif
   Serial.begin(115200);
+  while (!Serial) delay(10); // for Leonardo/Micro/Zero
+
   Serial.println("Hello!");
 
   nfc.begin();
@@ -119,7 +112,7 @@ void loop(void) {
       // NTAG 216       231     4             225      
 
       Serial.println("");
-      Serial.println("Writing 0x00 0x00 0x00 0x00 to pages 4..29");
+      Serial.println("Writing 0x00 0x00 0x00 0x00 to pages 4..39");
       Serial.println("");
       for (uint8_t i = 4; i < 39; i++) 
       {
