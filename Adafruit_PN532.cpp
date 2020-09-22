@@ -19,6 +19,10 @@
 
     @section  HISTORY
 
+    v2.2 - Added startPassiveTargetIDDetection() to start card detection and
+            readDetectedPassiveTargetID() to read it, useful when using the 
+            IRQ pin.
+
     v2.1 - Added NTAG2xx helper functions
 
     v2.0 - Refactored to add I2C support from Adafruit_NFCShield_I2C library.
@@ -495,7 +499,7 @@ bool Adafruit_PN532::setPassiveActivationRetries(uint8_t maxRetries) {
 
 /**************************************************************************/
 /*!
-    Waits for an ISO14443A target to enter the field
+    Waits for an ISO14443A target to enter the field and reads its ID.
 
     @param  cardBaudRate  Baud rate of the card
     @param  uid           Pointer to the array that will be populated
@@ -532,6 +536,39 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid,
     }
   }
 
+  return readDetectedPassiveTargetID(uid, uidLength);
+}
+
+/**************************************************************************/
+/*!
+    Put the reader in detection mode, non blocking so interrupts must be enabled
+
+    @param  cardBaudRate  Baud rate of the card
+
+    @returns 1 if everything executed properly, 0 for an error
+*/
+/**************************************************************************/
+bool Adafruit_PN532::startPassiveTargetIDDetection(uint8_t cardbaudrate) {
+  pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
+  pn532_packetbuffer[1] = 1;  // max 1 cards at once (we can set this to 2 later)
+  pn532_packetbuffer[2] = cardbaudrate;
+
+  return sendCommandCheckAck(pn532_packetbuffer, 3);
+}
+
+/**************************************************************************/
+/*!
+    Reads the ID of the passive target the reader has deteceted.
+
+    @param  uid           Pointer to the array that will be populated
+                          with the card's UID (up to 7 bytes)
+    @param  uidLength     Pointer to the variable that will hold the
+                          length of the card's UID.
+
+    @returns 1 if everything executed properly, 0 for an error
+*/
+/**************************************************************************/
+bool Adafruit_PN532::readDetectedPassiveTargetID(uint8_t * uid, uint8_t * uidLength) {
   // read data packet
   readdata(pn532_packetbuffer, 20);
   // check some basic stuff
