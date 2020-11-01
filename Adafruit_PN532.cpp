@@ -20,7 +20,7 @@
     @section  HISTORY
 
     v2.2 - Added startPassiveTargetIDDetection() to start card detection and
-            readDetectedPassiveTargetID() to read it, useful when using the 
+            readDetectedPassiveTargetID() to read it, useful when using the
             IRQ pin.
 
     v2.1 - Added NTAG2xx helper functions
@@ -550,7 +550,7 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid,
 /**************************************************************************/
 bool Adafruit_PN532::startPassiveTargetIDDetection(uint8_t cardbaudrate) {
   pn532_packetbuffer[0] = PN532_COMMAND_INLISTPASSIVETARGET;
-  pn532_packetbuffer[1] = 1;  // max 1 cards at once (we can set this to 2 later)
+  pn532_packetbuffer[1] = 1; // max 1 cards at once (we can set this to 2 later)
   pn532_packetbuffer[2] = cardbaudrate;
 
   return sendCommandCheckAck(pn532_packetbuffer, 3);
@@ -568,7 +568,8 @@ bool Adafruit_PN532::startPassiveTargetIDDetection(uint8_t cardbaudrate) {
     @returns 1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
-bool Adafruit_PN532::readDetectedPassiveTargetID(uint8_t * uid, uint8_t * uidLength) {
+bool Adafruit_PN532::readDetectedPassiveTargetID(uint8_t *uid,
+                                                 uint8_t *uidLength) {
   // read data packet
   readdata(pn532_packetbuffer, 20);
   // check some basic stuff
