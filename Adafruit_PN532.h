@@ -223,7 +223,7 @@ private:
   int8_t _key[6];      // Mifare Classic key
   int8_t _inListedTag; // Tg number of inlisted tag.
   TwoWire * _wire;
-  const bool _doBegin;
+  bool _doBegin;
 
   // Low level communication functions that handle both SPI and I2C.
   void readdata(uint8_t *buff, uint8_t n);
