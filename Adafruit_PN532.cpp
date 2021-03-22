@@ -59,13 +59,6 @@
 
 #include "Arduino.h"
 
-#include <Wire.h>
-#ifdef __SAM3X8E__ // arduino due
-#define WIRE Wire1 ///< Fixed name for I2C instance
-#else
-#define WIRE Wire ///< Fixed name for I2C instance
-#endif
-
 #include <SPI.h>
 
 #include "Adafruit_PN532.h"
@@ -101,11 +94,11 @@ byte pn532_packetbuffer[PN532_PACKBUFFSIZ]; ///< Packet buffer used in various
     @param  x    The byte to send
 */
 /**************************************************************************/
-static inline void i2c_send(uint8_t x) {
+static inline void i2c_send(TwoWire & wire, uint8_t x) {
 #if ARDUINO >= 100
-  WIRE.write((uint8_t)x);
+  wire.write((uint8_t)x);
 #else
-  WIRE.send(x);
+  wire.send(x);
 #endif
 }
 
@@ -114,11 +107,11 @@ static inline void i2c_send(uint8_t x) {
     @brief  Reads a single byte via I2C
 */
 /**************************************************************************/
-static inline uint8_t i2c_recv(void) {
+static inline uint8_t i2c_recv(TwoWire & wire) {
 #if ARDUINO >= 100
-  return WIRE.read();
+  return wire.read();
 #else
-  return WIRE.receive();
+  return wire.receive();
 #endif
 }
 
@@ -146,8 +139,8 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi,
     @param  reset     Location of the RSTPD_N pin
 */
 /**************************************************************************/
-Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset)
-    : _irq(irq), _reset(reset) {
+Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset, TwoWire *wire)
+    : _irq(irq), _reset(reset), _wire(wire) {
   pinMode(_irq, INPUT);
   pinMode(_reset, OUTPUT);
 }
@@ -180,7 +173,7 @@ void Adafruit_PN532::begin() {
     // ignore response!
   } else {
     // I2C initialization.
-    WIRE.begin();
+    _wire->begin();
 
     // Reset the PN532
     digitalWrite(_reset, HIGH);
@@ -1600,19 +1593,19 @@ void Adafruit_PN532::readdata(uint8_t *buff, uint8_t n) {
     PN532DEBUGPRINT.print(F("Reading: "));
 #endif
     // Start read (n+1 to take into account leading 0x01 with I2C)
-    WIRE.requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint8_t)(n + 2));
+    _wire->requestFrom((uint8_t)PN532_I2C_ADDRESS, (uint8_t)(n + 2));
     // Discard the leading 0x01
-    i2c_recv();
+    i2c_recv(*_wire);
     for (uint8_t i = 0; i < n; i++) {
       delay(1);
-      buff[i] = i2c_recv();
+      buff[i] = i2c_recv(*_wire);
 #ifdef PN532DEBUG
       PN532DEBUGPRINT.print(F(" 0x"));
       PN532DEBUGPRINT.print(buff[i], HEX);
 #endif
     }
     // Discard trailing 0x00 0x00
-    // i2c_recv();
+    // i2c_recv(*_wire);
 
 #ifdef PN532DEBUG
     PN532DEBUGPRINT.println();
@@ -1790,16 +1783,16 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
     delay(2); // or whatever the delay is for waking up the board
 
     // I2C START
-    WIRE.beginTransmission(PN532_I2C_ADDRESS);
+    _wire->beginTransmission(PN532_I2C_ADDRESS);
     checksum = PN532_PREAMBLE + PN532_PREAMBLE + PN532_STARTCODE2;
-    i2c_send(PN532_PREAMBLE);
-    i2c_send(PN532_PREAMBLE);
-    i2c_send(PN532_STARTCODE2);
+    i2c_send(*_wire, PN532_PREAMBLE);
+    i2c_send(*_wire, PN532_PREAMBLE);
+    i2c_send(*_wire, PN532_STARTCODE2);
 
-    i2c_send(cmdlen);
-    i2c_send(~cmdlen + 1);
+    i2c_send(*_wire, cmdlen);
+    i2c_send(*_wire, ~cmdlen + 1);
 
-    i2c_send(PN532_HOSTTOPN532);
+    i2c_send(*_wire, PN532_HOSTTOPN532);
     checksum += PN532_HOSTTOPN532;
 
 #ifdef PN532DEBUG
@@ -1818,7 +1811,7 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
 #endif
 
     for (uint8_t i = 0; i < cmdlen - 1; i++) {
-      i2c_send(cmd[i]);
+      i2c_send(*_wire, cmd[i]);
       checksum += cmd[i];
 #ifdef PN532DEBUG
       PN532DEBUGPRINT.print(F(" 0x"));
@@ -1826,11 +1819,11 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
 #endif
     }
 
-    i2c_send((byte)~checksum);
-    i2c_send((byte)PN532_POSTAMBLE);
+    i2c_send(*_wire, (byte)~checksum);
+    i2c_send(*_wire, (byte)PN532_POSTAMBLE);
 
     // I2C STOP
-    WIRE.endTransmission();
+    _wire->endTransmission();
 
 #ifdef PN532DEBUG
     PN532DEBUGPRINT.print(F(" 0x"));
