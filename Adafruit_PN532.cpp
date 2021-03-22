@@ -127,8 +127,9 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi,
     @param  reset     Location of the RSTPD_N pin
 */
 /**************************************************************************/
-Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset, TwoWire * wire)
-    : _irq(irq), _reset(reset), _wire(wire) {
+Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset, TwoWire * wire
+                               const bool doBegin)
+    : _irq(irq), _reset(reset), _wire(wire), _doBegin(doBegin) {
   pinMode(_irq, INPUT);
   pinMode(_reset, OUTPUT);
 }
@@ -161,7 +162,7 @@ void Adafruit_PN532::begin() {
     // ignore response!
   } else {
     // I2C initialization.
-    _wire->begin();
+    if (_doBegin) _wire->begin();
 
     // Reset the PN532
     digitalWrite(_reset, HIGH);
