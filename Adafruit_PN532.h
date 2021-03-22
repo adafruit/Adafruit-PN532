@@ -32,6 +32,7 @@
 
 #include "Arduino.h"
 #include <Adafruit_SPIDevice.h>
+#include <Wire.h>
 
 #define PN532_PREAMBLE (0x00)
 #define PN532_STARTCODE1 (0x00)
@@ -154,7 +155,15 @@ class Adafruit_PN532 {
 public:
   Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi,
                  uint8_t ss);                 // Software SPI
-  Adafruit_PN532(uint8_t irq, uint8_t reset); // Hardware I2C
+  Adafruit_PN532(
+      uint8_t irq,
+      uint8_t reset,
+      #ifdef __SAM3X8E__
+      TwoWire * wire = &Wire1
+      #else
+      TwoWire * wire = &Wire
+      #endif
+  );
   Adafruit_PN532(uint8_t ss);                 // Hardware SPI
   void begin(void);
 
@@ -212,6 +221,7 @@ private:
   int8_t _uidLen;      // uid len
   int8_t _key[6];      // Mifare Classic key
   int8_t _inListedTag; // Tg number of inlisted tag.
+  TwoWire * _wire;
 
   // Low level communication functions that handle both SPI and I2C.
   void readdata(uint8_t *buff, uint8_t n);
