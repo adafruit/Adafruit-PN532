@@ -94,7 +94,7 @@ byte pn532_packetbuffer[PN532_PACKBUFFSIZ]; ///< Packet buffer used in various
     @param  x    The byte to send
 */
 /**************************************************************************/
-static inline void i2c_send(TwoWire & wire, uint8_t x) {
+static inline void i2c_send(TwoWire &wire, uint8_t x) {
 #if ARDUINO >= 100
   wire.write((uint8_t)x);
 #else
@@ -107,7 +107,7 @@ static inline void i2c_send(TwoWire & wire, uint8_t x) {
     @brief  Reads a single byte via I2C
 */
 /**************************************************************************/
-static inline uint8_t i2c_recv(TwoWire & wire) {
+static inline uint8_t i2c_recv(TwoWire &wire) {
 #if ARDUINO >= 100
   return wire.read();
 #else
