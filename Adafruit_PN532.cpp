@@ -82,7 +82,7 @@ byte pn532_packetbuffer[PN532_PACKBUFFSIZ];
     @param  x    The byte to send
 */
 /**************************************************************************/
-static inline void i2c_send(TwoWire & wire, uint8_t x) {
+static inline void i2c_send(TwoWire &wire, uint8_t x) {
 #if ARDUINO >= 100
   wire.write((uint8_t)x);
 #else
@@ -95,7 +95,7 @@ static inline void i2c_send(TwoWire & wire, uint8_t x) {
     @brief  Reads a single byte via I2C
 */
 /**************************************************************************/
-static inline uint8_t i2c_recv(TwoWire & wire) {
+static inline uint8_t i2c_recv(TwoWire &wire) {
 #if ARDUINO >= 100
   return wire.read();
 #else
@@ -127,7 +127,7 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi,
     @param  reset     Location of the RSTPD_N pin
 */
 /**************************************************************************/
-Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset, TwoWire * wire,
+Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset, TwoWire *wire,
                                const bool doBegin)
     : _irq(irq), _reset(reset), _wire(wire), _doBegin(doBegin) {
   pinMode(_irq, INPUT);
@@ -162,7 +162,8 @@ void Adafruit_PN532::begin() {
     // ignore response!
   } else {
     // I2C initialization.
-    if (_doBegin) _wire->begin();
+    if (_doBegin)
+      _wire->begin();
 
     // Reset the PN532
     digitalWrite(_reset, HIGH);
