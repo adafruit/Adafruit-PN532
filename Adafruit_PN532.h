@@ -221,8 +221,8 @@ private:
   bool isready();
   bool waitready(uint16_t timeout);
   bool readack();
-  bool WriteRegister(uint8_t* reg, uint8_t len);
-  bool InCommunicateThru(uint8_t* data, uint8_t len);
+  bool WriteRegister(uint8_t *reg, uint8_t len);
+  bool InCommunicateThru(uint8_t *data, uint8_t len);
 
   // SPI-specific functions.
   Adafruit_SPIDevice *spi_dev = NULL;
