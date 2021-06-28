@@ -1927,5 +1927,4 @@ bool Adafruit_PN532::UnlockBackdoor() {
       return false;
     }
   return true;
-  }
 }
