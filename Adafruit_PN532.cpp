@@ -1556,8 +1556,10 @@ bool Adafruit_PN532::waitready(uint16_t timeout) {
 void Adafruit_PN532::readdata(uint8_t *buff, uint8_t n) {
   if (spi_dev) {
     uint8_t cmd = PN532_SPI_DATAREAD;
+    
 
     spi_dev->write_then_read(&cmd, 1, buff, n);
+
 
 #ifdef PN532DEBUG
     PN532DEBUGPRINT.print(F("Reading: "));
@@ -1713,6 +1715,7 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
     p[0] = PN532_SPI_DATAWRITE;
     p++;
 
+
     p[0] = PN532_PREAMBLE;
     p++;
     p[0] = PN532_STARTCODE1;
@@ -1720,6 +1723,7 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
     p[0] = PN532_STARTCODE2;
     p++;
     checksum = PN532_PREAMBLE + PN532_STARTCODE1 + PN532_STARTCODE2;
+
 
     p[0] = cmdlen;
     p++;
@@ -1814,6 +1818,7 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
     PN532DEBUGPRINT.print((byte)PN532_POSTAMBLE, HEX);
     PN532DEBUGPRINT.println();
 #endif
+
   }
 }
 
@@ -1922,4 +1927,5 @@ bool Adafruit_PN532::UnlockBackdoor() {
       return false;
     }
   return true;
+  }
 }

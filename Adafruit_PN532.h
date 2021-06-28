@@ -181,7 +181,7 @@ public:
   uint8_t setDataTarget(uint8_t *cmd, uint8_t cmdlen);
 
   // Mifare Classic functions
-  
+
   bool UnlockBackdoor();
   bool mifareclassic_IsFirstBlock(uint32_t uiBlock);
   bool mifareclassic_IsTrailerBlock(uint32_t uiBlock);

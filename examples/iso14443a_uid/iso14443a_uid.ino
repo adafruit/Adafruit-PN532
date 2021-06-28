@@ -1,16 +1,15 @@
 /**************************************************************************/
 /*! 
-    @file     iso14443as_target.pde
-    @original Adafruit Industries
-    @modified Salvador Mendoza(@Netxing)
-    @license  BSD (see license.txt)
+    @file     iso14443a_uid.pde
+    @author   Adafruit Industries
+	@license  BSD (see license.txt)
 
-    This example will attempt to mimic an ISO14443A smart card
-    and retrieve some basic information from a PoS or terminal,
-    this can be used to establish a communication process.   
+    This example will attempt to connect to an ISO14443A
+    card or tag and retrieve some basic information about it
+    that can be used to determine what type of card it is.   
    
     Note that you need the baud rate to be 115200 because we need to print
-    out the data and read from the card at the same time!
+	out the data and read from the card at the same time!
 
 This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
 This library works with the Adafruit NFC breakout 
@@ -55,17 +54,9 @@ Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 // Or use this line for a breakout or shield with an I2C connection:
 //Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 
-#if defined(ARDUINO_ARCH_SAMD)
-// for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
-// also change #define in Adafruit_PN532.cpp library file
-   #define Serial SerialUSB
-#endif
-
 void setup(void) {
-  #ifndef ESP8266
-    while (!Serial); // for Leonardo/Micro/Zero
-  #endif
   Serial.begin(115200);
+  while (!Serial) delay(10); // for Leonardo/Micro/Zero
   Serial.println("Hello!");
 
   nfc.begin();
@@ -89,29 +80,34 @@ void setup(void) {
   // configure board to read RFID tags
   nfc.SAMConfig();
   
-  Serial.println("As Target... Approach the NFC PN532 Board to a PoS or terminal!");
-  delay(200);
+  Serial.println("Waiting for an ISO14443A card");
 }
 
 void loop(void) {
   boolean success;
-  uint8_t apdubuffer[255] = {}, apdulen;
-  uint8_t ppse[] = {0x8E, 0x6F, 0x23, 0x84, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0xA5, 0x11, 0xBF, 0x0C, 0x0E, 0x61, 0x0C, 0x4F, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x03, 0x10, 0x10, 0x87, 0x01, 0x01, 0x90, 0x00};
-  nfc.AsTarget();
-  success = nfc.getDataTarget(apdubuffer, &apdulen); //Read initial APDU
-  if (apdulen>0){
-    for (uint8_t i = 0; i < apdulen; i++){
-      Serial.print(" 0x"); Serial.print(apdubuffer[i], HEX);
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };	// Buffer to store the returned UID
+  uint8_t uidLength;				// Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+  
+  // Wait for an ISO14443A type cards (Mifare, etc.).  When one is found
+  // 'uid' will be populated with the UID, and uidLength will indicate
+  // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
+  
+  if (success) {
+    Serial.println("Found a card!");
+    Serial.print("UID Length: ");Serial.print(uidLength, DEC);Serial.println(" bytes");
+    Serial.print("UID Value: ");
+    for (uint8_t i=0; i < uidLength; i++) 
+    {
+      Serial.print(" 0x");Serial.print(uid[i], HEX); 
     }
     Serial.println("");
+	// Wait 1 second before continuing
+	delay(1000);
   }
-  nfc.setDataTarget(ppse, sizeof(ppse));   //Mimic a smart card response with a PPSE APDU
-  nfc.getDataTarget(apdubuffer, &apdulen); //Read respond from the PoS or Terminal
-  if (apdulen>0){
-    for (uint8_t i = 0; i < apdulen; i++){
-      Serial.print(" 0x"); Serial.print(apdubuffer[i], HEX);
-    }
-    Serial.println("");
+  else
+  {
+    // PN532 probably timed out waiting for a card
+    Serial.println("Timed out waiting for a card");
   }
-  delay(1000);
 }
