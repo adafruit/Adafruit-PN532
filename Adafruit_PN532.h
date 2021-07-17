@@ -156,6 +156,7 @@ public:
                  uint8_t ss);                 // Software SPI
   Adafruit_PN532(uint8_t irq, uint8_t reset); // Hardware I2C
   Adafruit_PN532(uint8_t ss);                 // Hardware SPI
+  Adafruit_PN532(Adafruit_SPIDevice device);  // SPI
   void begin(void);
 
   // Generic PN532 functions
