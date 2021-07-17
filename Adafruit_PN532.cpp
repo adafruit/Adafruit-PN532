@@ -142,6 +142,17 @@ Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset)
 
 /**************************************************************************/
 /*!
+    @brief  Instantiates a new PN532 class using SPI.
+
+    @param  device       info for SPI bus
+*/
+/**************************************************************************/
+Adafruit_PN532::Adafruit_PN532(Adafruit_SPIDevice device){
+  spi_dev = new Adafruit_SPIDevice(device);
+}
+
+/**************************************************************************/
+/*!
     @brief  Instantiates a new PN532 class using hardware SPI.
 
     @param  ss        SPI chip select pin (CS/SSEL)
