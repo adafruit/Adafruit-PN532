@@ -148,8 +148,13 @@ Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset)
 */
 /**************************************************************************/
 Adafruit_PN532::Adafruit_PN532(uint8_t ss) {
+   #ifdef ESP32
+        uint32_t frequency = 100000;
+    #else
+        uint32_t frequency = 1000000;
+    #endif
   spi_dev =
-      new Adafruit_SPIDevice(ss, 1000000, SPI_BITORDER_LSBFIRST, SPI_MODE0);
+      new Adafruit_SPIDevice(ss, frequency, SPI_BITORDER_LSBFIRST, SPI_MODE0);
 }
 
 /**************************************************************************/
