@@ -1623,7 +1623,6 @@ void Adafruit_PN532::readdata(uint8_t *buff, uint8_t n) {
 /**************************************************************************/
 /*!
     @brief   set the PN532 as iso14443a Target behaving as a SmartCard
-    @param   None
     @return  true on success, false otherwise.
     @note    Author: Salvador Mendoza (salmg.net) new functions:
              -AsTarget
