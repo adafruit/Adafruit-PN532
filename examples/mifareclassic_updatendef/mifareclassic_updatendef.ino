@@ -99,7 +99,6 @@ void loop(void) {
   uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 
   // Use the default NDEF keys (these would have have set by mifareclassic_formatndef.pde!)
-  uint8_t keya[6] = { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5 };
   uint8_t keyb[6] = { 0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7 };
 
   Serial.println("Place your NDEF formatted Mifare Classic card on the reader to update the");
