@@ -1,21 +1,29 @@
 /**************************************************************************/
 /*!
-    @file     Adafruit_PN532.cpp
-    @author   Adafruit Industries
-    @license  BSD (see license.txt)
+    @file Adafruit_PN532.cpp
 
-          Driver for NXP's PN532 NFC/13.56MHz RFID Transceiver
+    @section intro_sec Introduction
 
-          This is a library for the Adafruit PN532 NFC/RFID breakout boards
-          This library works with the Adafruit NFC breakout
-          ----> https://www.adafruit.com/products/364
+    Driver for NXP's PN532 NFC/13.56MHz RFID Transceiver
 
-          Check out the links above for our tutorials and wiring diagrams
-          These chips use SPI or I2C to communicate.
+    This is a library for the Adafruit PN532 NFC/RFID breakout boards
+    This library works with the Adafruit NFC breakout
+    ----> https://www.adafruit.com/products/364
 
-          Adafruit invests time and resources providing this open source code,
-          please support Adafruit and open-source hardware by purchasing
-          products from Adafruit!
+    Check out the links above for our tutorials and wiring diagrams
+    These chips use SPI or I2C to communicate.
+
+    Adafruit invests time and resources providing this open source code,
+    please support Adafruit and open-source hardware by purchasing
+    products from Adafruit!
+
+    @section author Author
+
+    Adafruit Industries
+
+    @section license License
+
+    BSD (see license.txt)
 
     @section  HISTORY
 
@@ -53,17 +61,17 @@
 
 #include <Wire.h>
 #ifdef __SAM3X8E__ // arduino due
-#define WIRE Wire1
+#define WIRE Wire1 ///< Fixed name for I2C instance
 #else
-#define WIRE Wire
+#define WIRE Wire ///< Fixed name for I2C instance
 #endif
 
 #include <SPI.h>
 
 #include "Adafruit_PN532.h"
 
-byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
-byte pn532response_firmwarevers[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5};
+byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00}; ///< ACK message from PN532
+byte pn532response_firmwarevers[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5}; ///< Expected firmware version message from PN532
 
 // Uncomment these lines to enable debug output for PN532(SPI) and/or MIFARE
 // related code
@@ -72,14 +80,14 @@ byte pn532response_firmwarevers[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5};
 // #define MIFAREDEBUG
 
 // If using Native Port on Arduino Zero or Due define as SerialUSB
-#define PN532DEBUGPRINT Serial
-//#define PN532DEBUGPRINT SerialUSB
+#define PN532DEBUGPRINT Serial ///< Fixed name for debug Serial instance
+//#define PN532DEBUGPRINT SerialUSB ///< Fixed name for debug Serial instance
 
-#define PN532_PACKBUFFSIZ 64
-byte pn532_packetbuffer[PN532_PACKBUFFSIZ];
+#define PN532_PACKBUFFSIZ 64 ///< Packet buffer size in bytes
+byte pn532_packetbuffer[PN532_PACKBUFFSIZ]; ///< Packet buffer used in various transactions
 
 #ifndef _BV
-#define _BV(bit) (1 << (bit))
+#define _BV(bit) (1 << (bit)) ///< oldschool Arduino bit-value macro
 #endif
 
 /**************************************************************************/
@@ -327,7 +335,9 @@ bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen,
 
 /**************************************************************************/
 /*!
-    Writes an 8-bit value that sets the state of the PN532's GPIO pins
+    @brief   Writes an 8-bit value that sets the state of the PN532's GPIO
+             pins.
+    @param   pinstate  P3 pins state.
 
     @warning This function is provided exclusively for board testing and
              is dangerous since it will throw an error if any pin other
@@ -343,7 +353,7 @@ bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen,
              pinState[4]  = P34     *** RESERVED (Must be 1!) ***
              pinState[5]  = P35     Can be used as GPIO
 
-    @returns 1 if everything executed properly, 0 for an error
+    @return  1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
 bool Adafruit_PN532::writeGPIO(uint8_t pinstate) {
@@ -446,7 +456,8 @@ uint8_t Adafruit_PN532::readGPIO(void) {
 
 /**************************************************************************/
 /*!
-    @brief  Configures the SAM (Secure Access Module)
+    @brief   Configures the SAM (Secure Access Module)
+    @return  true on success, false otherwise.
 */
 /**************************************************************************/
 bool Adafruit_PN532::SAMConfig(void) {
@@ -498,15 +509,17 @@ bool Adafruit_PN532::setPassiveActivationRetries(uint8_t maxRetries) {
 
 /**************************************************************************/
 /*!
-    Waits for an ISO14443A target to enter the field and reads its ID.
+    @brief   Waits for an ISO14443A target to enter the field and reads
+             its ID.
 
-    @param  cardBaudRate  Baud rate of the card
-    @param  uid           Pointer to the array that will be populated
-                          with the card's UID (up to 7 bytes)
-    @param  uidLength     Pointer to the variable that will hold the
-                          length of the card's UID.
+    @param   cardbaudrate  Baud rate of the card
+    @param   uid           Pointer to the array that will be populated
+                           with the card's UID (up to 7 bytes)
+    @param   uidLength     Pointer to the variable that will hold the
+                           length of the card's UID.
+    @param   timeout       Timeout in milliseconds.
 
-    @returns 1 if everything executed properly, 0 for an error
+    @return  1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
 bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid,
@@ -540,11 +553,10 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid,
 
 /**************************************************************************/
 /*!
-    Put the reader in detection mode, non blocking so interrupts must be enabled
-
-    @param  cardBaudRate  Baud rate of the card
-
-    @returns 1 if everything executed properly, 0 for an error
+    @brief   Put the reader in detection mode, non blocking so interrupts
+             must be enabled.
+    @param   cardbaudrate  Baud rate of the card
+    @return  1 if everything executed properly, 0 for an error
 */
 /**************************************************************************/
 bool Adafruit_PN532::startPassiveTargetIDDetection(uint8_t cardbaudrate) {
@@ -624,12 +636,13 @@ bool Adafruit_PN532::readDetectedPassiveTargetID(uint8_t *uid,
 
 /**************************************************************************/
 /*!
-    @brief  Exchanges an APDU with the currently inlisted peer
+    @brief   Exchanges an APDU with the currently inlisted peer
 
-    @param  send            Pointer to data to send
-    @param  sendLength      Length of the data to send
-    @param  response        Pointer to response data
-    @param  responseLength  Pointer to the response data length
+    @param   send            Pointer to data to send
+    @param   sendLength      Length of the data to send
+    @param   response        Pointer to response data
+    @param   responseLength  Pointer to the response data length
+    @return  true on success, false otherwise.
 */
 /**************************************************************************/
 bool Adafruit_PN532::inDataExchange(uint8_t *send, uint8_t sendLength,
@@ -710,8 +723,9 @@ bool Adafruit_PN532::inDataExchange(uint8_t *send, uint8_t sendLength,
 
 /**************************************************************************/
 /*!
-    @brief  'InLists' a passive target. PN532 acting as reader/initiator,
-            peer acting as card/responder.
+    @brief   'InLists' a passive target. PN532 acting as reader/initiator,
+             peer acting as card/responder.
+    @return  true on success, false otherwise.
 */
 /**************************************************************************/
 bool Adafruit_PN532::inListPassiveTarget() {
@@ -783,8 +797,10 @@ bool Adafruit_PN532::inListPassiveTarget() {
 
 /**************************************************************************/
 /*!
-      Indicates whether the specified block number is the first block
-      in the sector (block 0 relative to the current sector)
+    @brief   Indicates whether the specified block number is the first block
+             in the sector (block 0 relative to the current sector)
+    @param   uiBlock  Block number to test.
+    @return  true if first block, false otherwise.
 */
 /**************************************************************************/
 bool Adafruit_PN532::mifareclassic_IsFirstBlock(uint32_t uiBlock) {
@@ -797,7 +813,10 @@ bool Adafruit_PN532::mifareclassic_IsFirstBlock(uint32_t uiBlock) {
 
 /**************************************************************************/
 /*!
-      Indicates whether the specified block number is the sector trailer
+    @brief   Indicates whether the specified block number is the sector
+             trailer.
+    @param   uiBlock  Block number to test.
+    @return  true if sector trailer, false otherwise.
 */
 /**************************************************************************/
 bool Adafruit_PN532::mifareclassic_IsTrailerBlock(uint32_t uiBlock) {
@@ -1118,11 +1137,12 @@ uint8_t Adafruit_PN532::mifareclassic_WriteNDEFURI(uint8_t sectorNumber,
 
 /**************************************************************************/
 /*!
-    Tries to read an entire 4-byte page at the specified address.
+    @brief   Tries to read an entire 4-byte page at the specified address.
 
-    @param  page        The page number (0..63 in most cases)
-    @param  buffer      Pointer to the byte array that will hold the
-                        retrieved data (if any)
+    @param   page        The page number (0..63 in most cases)
+    @param   buffer      Pointer to the byte array that will hold the
+                         retrieved data (if any)
+    @return  1 on success, 0 on error.
 */
 /**************************************************************************/
 uint8_t Adafruit_PN532::mifareultralight_ReadPage(uint8_t page,
@@ -1246,11 +1266,12 @@ uint8_t Adafruit_PN532::mifareultralight_WritePage(uint8_t page,
 
 /**************************************************************************/
 /*!
-    Tries to read an entire 4-byte page at the specified address.
+    @brief   Tries to read an entire 4-byte page at the specified address.
 
-    @param  page        The page number (0..63 in most cases)
-    @param  buffer      Pointer to the byte array that will hold the
-                        retrieved data (if any)
+    @param   page        The page number (0..63 in most cases)
+    @param   buffer      Pointer to the byte array that will hold the
+                         retrieved data (if any)
+    @return  1 on success, 0 on error.
 */
 /**************************************************************************/
 uint8_t Adafruit_PN532::ntag2xx_ReadPage(uint8_t page, uint8_t *buffer) {
@@ -1597,12 +1618,13 @@ void Adafruit_PN532::readdata(uint8_t *buff, uint8_t n) {
 
 /**************************************************************************/
 /*!
-    @brief  set the PN532 as iso14443a Target behaving as a SmartCard
-    @param  None
-    #author Salvador Mendoza(salmg.net) new functions:
-    -AsTarget
-    -getDataTarget
-    -setDataTarget
+    @brief   set the PN532 as iso14443a Target behaving as a SmartCard
+    @param   None
+    @return  true on success, false otherwise.
+    @note    Author: Salvador Mendoza (salmg.net) new functions:
+             -AsTarget
+             -getDataTarget
+             -setDataTarget
 */
 /**************************************************************************/
 uint8_t Adafruit_PN532::AsTarget() {
@@ -1633,10 +1655,11 @@ uint8_t Adafruit_PN532::AsTarget() {
 }
 /**************************************************************************/
 /*!
-    @brief  retrieve response from the emulation mode
+    @brief   Retrieve response from the emulation mode
 
-    @param  cmd    = data
-    @param  cmdlen = data length
+    @param   cmd    = data
+    @param   cmdlen = data length
+    @return  true on success, false otherwise.
 */
 /**************************************************************************/
 uint8_t Adafruit_PN532::getDataTarget(uint8_t *cmd, uint8_t *cmdlen) {
@@ -1665,10 +1688,11 @@ uint8_t Adafruit_PN532::getDataTarget(uint8_t *cmd, uint8_t *cmdlen) {
 
 /**************************************************************************/
 /*!
-    @brief  set data in PN532 in the emulation mode
+    @brief   Set data in PN532 in the emulation mode
 
-    @param  cmd    = data
-    @param  cmdlen = data length
+    @param   cmd    = data
+    @param   cmdlen = data length
+    @return  true on success, false otherwise.
 */
 /**************************************************************************/
 uint8_t Adafruit_PN532::setDataTarget(uint8_t *cmd, uint8_t cmdlen) {
