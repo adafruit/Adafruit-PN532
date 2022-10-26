@@ -70,8 +70,11 @@
 
 #include "Adafruit_PN532.h"
 
-byte pn532ack[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00}; ///< ACK message from PN532
-byte pn532response_firmwarevers[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5}; ///< Expected firmware version message from PN532
+byte pn532ack[] = {0x00, 0x00, 0xFF,
+                   0x00, 0xFF, 0x00}; ///< ACK message from PN532
+byte pn532response_firmwarevers[] = {
+    0x00, 0x00, 0xFF,
+    0x06, 0xFA, 0xD5}; ///< Expected firmware version message from PN532
 
 // Uncomment these lines to enable debug output for PN532(SPI) and/or MIFARE
 // related code
@@ -83,8 +86,9 @@ byte pn532response_firmwarevers[] = {0x00, 0x00, 0xFF, 0x06, 0xFA, 0xD5}; ///< E
 #define PN532DEBUGPRINT Serial ///< Fixed name for debug Serial instance
 //#define PN532DEBUGPRINT SerialUSB ///< Fixed name for debug Serial instance
 
-#define PN532_PACKBUFFSIZ 64 ///< Packet buffer size in bytes
-byte pn532_packetbuffer[PN532_PACKBUFFSIZ]; ///< Packet buffer used in various transactions
+#define PN532_PACKBUFFSIZ 64                ///< Packet buffer size in bytes
+byte pn532_packetbuffer[PN532_PACKBUFFSIZ]; ///< Packet buffer used in various
+                                            ///< transactions
 
 #ifndef _BV
 #define _BV(bit) (1 << (bit)) ///< oldschool Arduino bit-value macro
