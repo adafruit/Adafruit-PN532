@@ -291,7 +291,6 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
 // default timeout of one second
 bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen,
                                          uint16_t timeout) {
-  // uint16_t timer = 0;
 
   // write the command
   writecommand(cmd, cmdlen);
@@ -1569,7 +1568,6 @@ void Adafruit_PN532::readdata(uint8_t *buff, uint8_t n) {
 #endif
   } else {
     // I2C write.
-    uint16_t timer = 0;
 
     delay(2);
 

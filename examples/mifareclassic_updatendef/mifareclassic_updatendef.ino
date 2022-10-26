@@ -97,7 +97,6 @@ void loop(void) {
   uint8_t success;                          // Flag to check if there was an error with the PN532
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
   uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
-  bool authenticated = false;               // Flag to indicate if the sector is authenticated
 
   // Use the default NDEF keys (these would have have set by mifareclassic_formatndef.pde!)
   uint8_t keya[6] = { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5 };
