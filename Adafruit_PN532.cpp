@@ -156,6 +156,8 @@ Adafruit_PN532::Adafruit_PN532(uint8_t ss) {
 /**************************************************************************/
 /*!
     @brief  Setups the HW
+
+    @returns  true is successful, otherwise false
 */
 /**************************************************************************/
 bool Adafruit_PN532::begin() {
