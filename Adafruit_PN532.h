@@ -14,6 +14,14 @@
 #define ADAFRUIT_PN532_H
 
 #include "Arduino.h"
+
+#include <Wire.h>
+#ifdef __SAM3X8E__ // arduino due
+#define WIRE Wire1 ///< Fixed name for I2C instance
+#else
+#define WIRE Wire ///< Fixed name for I2C instance
+#endif
+
 #include <Adafruit_SPIDevice.h>
 
 #define PN532_PREAMBLE (0x00)   ///< Command sequence start, byte 1/3
@@ -142,7 +150,10 @@ public:
                  uint8_t ss);                 // Software SPI
   Adafruit_PN532(uint8_t irq, uint8_t reset); // Hardware I2C
   Adafruit_PN532(uint8_t ss);                 // Hardware SPI
-  void begin(void);
+  bool begin(void);
+
+  void reset(void);
+  void wakeup(void);
 
   // Generic PN532 functions
   bool SAMConfig(void);
