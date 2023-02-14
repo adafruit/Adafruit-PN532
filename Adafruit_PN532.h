@@ -15,13 +15,7 @@
 
 #include "Arduino.h"
 
-#include <Wire.h>
-#ifdef __SAM3X8E__ // arduino due
-#define WIRE Wire1 ///< Fixed name for I2C instance
-#else
-#define WIRE Wire ///< Fixed name for I2C instance
-#endif
-
+#include <Adafruit_I2CDevice.h>
 #include <Adafruit_SPIDevice.h>
 
 #define PN532_PREAMBLE (0x00)   ///< Command sequence start, byte 1/3
@@ -147,9 +141,10 @@
 class Adafruit_PN532 {
 public:
   Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi,
-                 uint8_t ss);                 // Software SPI
-  Adafruit_PN532(uint8_t irq, uint8_t reset); // Hardware I2C
-  Adafruit_PN532(uint8_t ss);                 // Hardware SPI
+                 uint8_t ss); // Software SPI
+  Adafruit_PN532(uint8_t ss); // Hardware SPI
+  Adafruit_PN532(uint8_t irq, uint8_t reset,
+                 TwoWire *theWire = &Wire); // Hardware I2C
   bool begin(void);
 
   void reset(void);
@@ -217,11 +212,8 @@ private:
   bool waitready(uint16_t timeout);
   bool readack();
 
-  // SPI-specific functions.
   Adafruit_SPIDevice *spi_dev = NULL;
-
-  // Note there are i2c_read and i2c_write inline functions defined in the .cpp
-  // file.
+  Adafruit_I2CDevice *i2c_dev = NULL;
 };
 
 #endif
