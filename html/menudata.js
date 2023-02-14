@@ -30,15 +30,11 @@ var menudata={children:[
 {text:"File List",url:"files.html"},
 {text:"File Members",url:"globals.html",children:[
 {text:"All",url:"globals.html",children:[
-{text:"_",url:"globals.html#index__"},
 {text:"m",url:"globals.html#index_m"},
 {text:"n",url:"globals.html#index_n"},
-{text:"p",url:"globals.html#index_p"},
-{text:"w",url:"globals.html#index_w"}]},
+{text:"p",url:"globals.html#index_p"}]},
 {text:"Variables",url:"globals_vars.html"},
 {text:"Macros",url:"globals_defs.html",children:[
-{text:"_",url:"globals_defs.html#index__"},
 {text:"m",url:"globals_defs.html#index_m"},
 {text:"n",url:"globals_defs.html#index_n"},
-{text:"p",url:"globals_defs.html#index_p"},
-{text:"w",url:"globals_defs.html#index_w"}]}]}]}]}
+{text:"p",url:"globals_defs.html#index_p"}]}]}]}]}

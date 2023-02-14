@@ -77,12 +77,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a289e2b626aa8a346e84f3a4f5de49ccd"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#a289e2b626aa8a346e84f3a4f5de49ccd">Adafruit_PN532</a> (uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss)</td></tr>
 <tr class="memdesc:a289e2b626aa8a346e84f3a4f5de49ccd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a new PN532 class using software SPI.  <a href="#a289e2b626aa8a346e84f3a4f5de49ccd">More...</a><br /></td></tr>
 <tr class="separator:a289e2b626aa8a346e84f3a4f5de49ccd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2fac0069b60b6b0bb39d2071e345dc84"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#a2fac0069b60b6b0bb39d2071e345dc84">Adafruit_PN532</a> (uint8_t irq, uint8_t <a class="el" href="class_adafruit___p_n532.html#a113b1f9d15c805491dc661cb80c63c46">reset</a>)</td></tr>
-<tr class="memdesc:a2fac0069b60b6b0bb39d2071e345dc84"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a new PN532 class using I2C.  <a href="#a2fac0069b60b6b0bb39d2071e345dc84">More...</a><br /></td></tr>
-<tr class="separator:a2fac0069b60b6b0bb39d2071e345dc84"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aea566b77a5b2ed37bd72901f97071e89"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#aea566b77a5b2ed37bd72901f97071e89">Adafruit_PN532</a> (uint8_t ss)</td></tr>
 <tr class="memdesc:aea566b77a5b2ed37bd72901f97071e89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a new PN532 class using hardware SPI.  <a href="#aea566b77a5b2ed37bd72901f97071e89">More...</a><br /></td></tr>
 <tr class="separator:aea566b77a5b2ed37bd72901f97071e89"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add07037b56e902339d1c6b459426ee04"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#add07037b56e902339d1c6b459426ee04">Adafruit_PN532</a> (uint8_t irq, uint8_t <a class="el" href="class_adafruit___p_n532.html#a113b1f9d15c805491dc661cb80c63c46">reset</a>, TwoWire *theWire=&amp;Wire)</td></tr>
+<tr class="memdesc:add07037b56e902339d1c6b459426ee04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a new PN532 class using I2C.  <a href="#add07037b56e902339d1c6b459426ee04">More...</a><br /></td></tr>
+<tr class="separator:add07037b56e902339d1c6b459426ee04"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3ee053332fd93cc85905fe000d292eaf"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#a3ee053332fd93cc85905fe000d292eaf">begin</a> (void)</td></tr>
 <tr class="memdesc:a3ee053332fd93cc85905fe000d292eaf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Setups the HW.  <a href="#a3ee053332fd93cc85905fe000d292eaf">More...</a><br /></td></tr>
 <tr class="separator:a3ee053332fd93cc85905fe000d292eaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -225,45 +225,8 @@ Static Public Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a2fac0069b60b6b0bb39d2071e345dc84"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2fac0069b60b6b0bb39d2071e345dc84">&#9670;&nbsp;</a></span>Adafruit_PN532() <span class="overload">[2/3]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">Adafruit_PN532::Adafruit_PN532 </td>
-          <td>(</td>
-          <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>irq</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>reset</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Instantiates a new PN532 class using I2C. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">irq</td><td>Location of the IRQ pin </td></tr>
-    <tr><td class="paramname">reset</td><td>Location of the RSTPD_N pin </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="aea566b77a5b2ed37bd72901f97071e89"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aea566b77a5b2ed37bd72901f97071e89">&#9670;&nbsp;</a></span>Adafruit_PN532() <span class="overload">[3/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aea566b77a5b2ed37bd72901f97071e89">&#9670;&nbsp;</a></span>Adafruit_PN532() <span class="overload">[2/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -288,6 +251,50 @@ Static Public Member Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="add07037b56e902339d1c6b459426ee04"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#add07037b56e902339d1c6b459426ee04">&#9670;&nbsp;</a></span>Adafruit_PN532() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Adafruit_PN532::Adafruit_PN532 </td>
+          <td>(</td>
+          <td class="paramtype">uint8_t&#160;</td>
+          <td class="paramname"><em>irq</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t&#160;</td>
+          <td class="paramname"><em>reset</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">TwoWire *&#160;</td>
+          <td class="paramname"><em>theWire</em> = <code>&amp;Wire</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Instantiates a new PN532 class using I2C. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">irq</td><td>Location of the IRQ pin </td></tr>
+    <tr><td class="paramname">reset</td><td>Location of the RSTPD_N pin </td></tr>
+    <tr><td class="paramname">theWire</td><td>pointer to I2C bus to use </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <h2 class="groupheader">Member Function Documentation</h2>
 <a id="a3ee053332fd93cc85905fe000d292eaf"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3ee053332fd93cc85905fe000d292eaf">&#9670;&nbsp;</a></span>begin()</h2>
@@ -306,7 +313,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Setups the HW. </p>
-<dl class="section return"><dt>Returns</dt><dd>true is successful, otherwise false </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>true if successful, otherwise false </dd></dl>
 
 </div>
 </div>

@@ -1,7 +1,8 @@
 var searchData=
 [
-  ['readdetectedpassivetargetid',['readDetectedPassiveTargetID',['../class_adafruit___p_n532.html#aad3489ad92ff24727ee0440b003e5dd4',1,'Adafruit_PN532']]],
-  ['readgpio',['readGPIO',['../class_adafruit___p_n532.html#a9b52c7f0f3b12c2711992da26a79a76b',1,'Adafruit_PN532']]],
-  ['readpassivetargetid',['readPassiveTargetID',['../class_adafruit___p_n532.html#a656bd0d65179203b4a2a6dbc4f283b9b',1,'Adafruit_PN532']]],
-  ['reset',['reset',['../class_adafruit___p_n532.html#a113b1f9d15c805491dc661cb80c63c46',1,'Adafruit_PN532']]]
+  ['samconfig',['SAMConfig',['../class_adafruit___p_n532.html#a2b74034bdea391edc7ee8d77815f5155',1,'Adafruit_PN532']]],
+  ['sendcommandcheckack',['sendCommandCheckAck',['../class_adafruit___p_n532.html#ad7ac92e9e162a1b7c30ad5c5011bb5af',1,'Adafruit_PN532']]],
+  ['setdatatarget',['setDataTarget',['../class_adafruit___p_n532.html#a7d27ae13c28b53af7625b3f9d1dff020',1,'Adafruit_PN532']]],
+  ['setpassiveactivationretries',['setPassiveActivationRetries',['../class_adafruit___p_n532.html#acd74386d666bd9ed5aca514892a92729',1,'Adafruit_PN532']]],
+  ['startpassivetargetiddetection',['startPassiveTargetIDDetection',['../class_adafruit___p_n532.html#abc2197d7be4f5ef9c2f61887e8c661ed',1,'Adafruit_PN532']]]
 ];
