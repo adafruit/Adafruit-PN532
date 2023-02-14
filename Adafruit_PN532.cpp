@@ -101,6 +101,7 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi,
 
     @param  irq       Location of the IRQ pin
     @param  reset     Location of the RSTPD_N pin
+    @param  theWire   pointer to I2C bus to use
 */
 /**************************************************************************/
 Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset, TwoWire *theWire)
