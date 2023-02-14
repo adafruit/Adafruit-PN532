@@ -57,17 +57,6 @@
 */
 /**************************************************************************/
 
-#include "Arduino.h"
-
-#include <Wire.h>
-#ifdef __SAM3X8E__ // arduino due
-#define WIRE Wire1 ///< Fixed name for I2C instance
-#else
-#define WIRE Wire ///< Fixed name for I2C instance
-#endif
-
-#include <SPI.h>
-
 #include "Adafruit_PN532.h"
 
 byte pn532ack[] = {0x00, 0x00, 0xFF,
@@ -167,17 +156,16 @@ Adafruit_PN532::Adafruit_PN532(uint8_t ss) {
 /**************************************************************************/
 /*!
     @brief  Setups the HW
+
+    @returns  true is successful, otherwise false
 */
 /**************************************************************************/
-void Adafruit_PN532::begin() {
-  if (spi_dev != NULL) {
+bool Adafruit_PN532::begin() {
+  if (spi_dev) {
     // SPI initialization
-    spi_dev->begin();
-
-    // not exactly sure why but we have to send a dummy command to get synced up
-    pn532_packetbuffer[0] = PN532_COMMAND_GETFIRMWAREVERSION;
-    sendCommandCheckAck(pn532_packetbuffer, 1);
-    // ignore response!
+    if (!spi_dev->begin()) {
+      return false;
+    }
   } else {
     // I2C initialization.
     WIRE.begin();
@@ -191,6 +179,45 @@ void Adafruit_PN532::begin() {
         10); // Small delay required before taking other actions after reset.
              // See timing diagram on page 209 of the datasheet, section 12.23.
   }
+  reset();  // HW reset - put in known state
+  wakeup(); // hey! wakeup!
+  return true;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Perform a hardware reset. Requires reset pin to have been provided.
+*/
+/**************************************************************************/
+void Adafruit_PN532::reset(void) {
+  // see Datasheet p.209, Fig.48 for timings
+  if (_reset != -1) {
+    digitalWrite(_reset, LOW);
+    delay(1); // min 20ns
+    digitalWrite(_reset, HIGH);
+    delay(2); // max 2ms
+  }
+}
+
+/**************************************************************************/
+/*!
+    @brief  Wakeup from LowVbat mode into Normal Mode.
+*/
+/**************************************************************************/
+void Adafruit_PN532::wakeup(void) {
+  // interface specific wakeups - each one is unique!
+  if (spi_dev != NULL) {
+    // hold CS low for 2ms
+    spi_dev->beginTransactionWithAssertingCS();
+    delay(2);
+  }
+
+  //
+  // TODO:: add I2C and HSU (uart) specific wakeups
+  //
+
+  // need to config SAM to stay in Normal Mode
+  SAMConfig();
 }
 
 /**************************************************************************/
