@@ -144,7 +144,8 @@ public:
                  uint8_t ss); // Software SPI
   Adafruit_PN532(uint8_t ss); // Hardware SPI
   Adafruit_PN532(uint8_t irq, uint8_t reset,
-                 TwoWire *theWire = &Wire); // Hardware I2C
+                 TwoWire *theWire = &Wire);              // Hardware I2C
+  Adafruit_PN532(uint8_t reset, HardwareSerial *theSer); // Hardware UART
   bool begin(void);
 
   void reset(void);
@@ -214,6 +215,7 @@ private:
 
   Adafruit_SPIDevice *spi_dev = NULL;
   Adafruit_I2CDevice *i2c_dev = NULL;
+  HardwareSerial *ser_dev = NULL;
 };
 
 #endif
