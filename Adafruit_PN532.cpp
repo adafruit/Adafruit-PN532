@@ -125,6 +125,20 @@ Adafruit_PN532::Adafruit_PN532(uint8_t ss) {
 
 /**************************************************************************/
 /*!
+    @brief  Instantiates a new PN532 class using hardware UART (HSU).
+
+    @param  reset     Location of the RSTPD_N pin
+    @param  theSer    pointer to HardWare Serial bus to use
+*/
+/**************************************************************************/
+Adafruit_PN532::Adafruit_PN532(uint8_t reset, HardwareSerial *theSer)
+    : _reset(reset) {
+  pinMode(_reset, OUTPUT);
+  ser_dev = theSer;
+}
+
+/**************************************************************************/
+/*!
     @brief  Setups the HW
 
     @returns  true if successful, otherwise false
@@ -142,6 +156,8 @@ bool Adafruit_PN532::begin() {
     if (!i2c_dev->begin(false)) {
       return false;
     }
+  } else if (ser_dev) {
+    ser_dev->begin(115200);
   } else {
     // no interface specified
     return false;
@@ -178,13 +194,13 @@ void Adafruit_PN532::wakeup(void) {
     // hold CS low for 2ms
     spi_dev->beginTransactionWithAssertingCS();
     delay(2);
+  } else if (ser_dev) {
+    uint8_t w[3] = {0x55, 0x00, 0x00};
+    ser_dev->write(w, 3);
+    delay(2);
   }
 
   // PN532 will clock stretch I2C during SAMConfig as a "wakeup"
-
-  //
-  // TODO:: add HSU (uart) specific wakeup
-  //
 
   // need to config SAM to stay in Normal Mode
   SAMConfig();
@@ -262,7 +278,7 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
   }
 
   // read data packet
-  readdata(pn532_packetbuffer, 12);
+  readdata(pn532_packetbuffer, 13);
 
   // check some basic stuff
   if (0 != memcmp((char *)pn532_packetbuffer,
@@ -480,7 +496,7 @@ bool Adafruit_PN532::SAMConfig(void) {
     return false;
 
   // read data packet
-  readdata(pn532_packetbuffer, 8);
+  readdata(pn532_packetbuffer, 9);
 
   int offset = 6;
   return (pn532_packetbuffer[offset] == 0x15);
@@ -543,19 +559,6 @@ bool Adafruit_PN532::readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid,
     PN532DEBUGPRINT.println(F("No card(s) read"));
 #endif
     return 0x0; // no cards read
-  }
-
-  // wait for a card to enter the field (only possible with I2C)
-  if (spi_dev == NULL) {
-#ifdef PN532DEBUG
-    PN532DEBUGPRINT.println(F("Waiting for IRQ (indicates card presence)"));
-#endif
-    if (!waitready(timeout)) {
-#ifdef PN532DEBUG
-      PN532DEBUGPRINT.println(F("IRQ Timeout"));
-#endif
-      return 0x0;
-    }
   }
 
   return readDetectedPassiveTargetID(uid, uidLength);
@@ -1524,7 +1527,7 @@ bool Adafruit_PN532::readack() {
   if (spi_dev) {
     uint8_t cmd = PN532_SPI_DATAREAD;
     spi_dev->write_then_read(&cmd, 1, ackbuff, 6);
-  } else if (i2c_dev) {
+  } else if (i2c_dev || ser_dev) {
     readdata(ackbuff, 6);
   }
 
@@ -1548,6 +1551,9 @@ bool Adafruit_PN532::isready() {
     uint8_t rdy[1];
     i2c_dev->read(rdy, 1);
     return rdy[0] == PN532_I2C_READY;
+  } else if (ser_dev) {
+    // Serial ready check based on non-zero read buffer
+    return (ser_dev->available() != 0);
   } else if (_irq != -1) {
     uint8_t x = digitalRead(_irq);
     return x == 0;
@@ -1599,6 +1605,9 @@ void Adafruit_PN532::readdata(uint8_t *buff, uint8_t n) {
     for (uint8_t i = 0; i < n; i++) {
       buff[i] = rbuff[i + 1];
     }
+  } else if (ser_dev) {
+    // Serial read
+    ser_dev->readBytes(buff, n);
   }
 #ifdef PN532DEBUG
   PN532DEBUGPRINT.print(F("Reading: "));
@@ -1767,8 +1776,8 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
 #endif
 
     spi_dev->write(packet, 8 + cmdlen);
-  } else if (i2c_dev) {
-    // I2C command write.
+  } else if (i2c_dev || ser_dev) {
+    // I2C or Serial command write.
     uint8_t packet[8 + cmdlen];
     uint8_t LEN = cmdlen + 1;
 
@@ -1796,6 +1805,10 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
     Serial.println();
 #endif
 
-    i2c_dev->write(packet, 8 + cmdlen);
+    if (i2c_dev) {
+      i2c_dev->write(packet, 8 + cmdlen);
+    } else {
+      ser_dev->write(packet, 8 + cmdlen);
+    }
   }
 }
