@@ -200,7 +200,7 @@ public:
   static void PrintHexChar(const byte *pbtData, const uint32_t numBytes);
 
 private:
-  int8_t _irq = -1, _reset = -1;
+  int8_t _irq = -1, _reset = -1, _cs = -1;
   int8_t _uid[7];      // ISO14443A uid
   int8_t _uidLen;      // uid len
   int8_t _key[6];      // Mifare Classic key
