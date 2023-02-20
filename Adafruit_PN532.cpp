@@ -91,6 +91,7 @@ byte pn532_packetbuffer[PN532_PACKBUFFSIZ]; ///< Packet buffer used in various
 /**************************************************************************/
 Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi,
                                uint8_t ss) {
+  _cs = ss;
   spi_dev = new Adafruit_SPIDevice(ss, clk, miso, mosi, 1000000,
                                    SPI_BITORDER_LSBFIRST, SPI_MODE0);
 }
@@ -119,6 +120,7 @@ Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset, TwoWire *theWire)
 */
 /**************************************************************************/
 Adafruit_PN532::Adafruit_PN532(uint8_t ss) {
+  _cs = ss;
   spi_dev =
       new Adafruit_SPIDevice(ss, 1000000, SPI_BITORDER_LSBFIRST, SPI_MODE0);
 }
@@ -158,6 +160,9 @@ bool Adafruit_PN532::begin() {
     }
   } else if (ser_dev) {
     ser_dev->begin(115200);
+    // clear out anything in read buffer
+    while (ser_dev->available())
+      ser_dev->read();
   } else {
     // no interface specified
     return false;
@@ -192,7 +197,7 @@ void Adafruit_PN532::wakeup(void) {
   // interface specific wakeups - each one is unique!
   if (spi_dev) {
     // hold CS low for 2ms
-    spi_dev->beginTransactionWithAssertingCS();
+    digitalWrite(_cs, LOW);
     delay(2);
   } else if (ser_dev) {
     uint8_t w[3] = {0x55, 0x00, 0x00};
