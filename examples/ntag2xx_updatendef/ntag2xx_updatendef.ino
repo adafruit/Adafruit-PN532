@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*! 
+/*!
     @file     ntag2xx_updatendef.pde
     @author   KTOWN (Adafruit Industries)
     @license  BSD (see license.txt)
@@ -9,14 +9,14 @@
     tag's memory.
 
     This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
-    This library works with the Adafruit NFC breakout 
+    This library works with the Adafruit NFC breakout
       ----> https://www.adafruit.com/products/364
- 
-    Check out the links above for our tutorials and wiring diagrams 
+
+    Check out the links above for our tutorials and wiring diagrams
     These chips use SPI or I2C to communicate.
 
-    Adafruit invests time and resources providing this open source code, 
-    please support Adafruit and open-source hardware by purchasing 
+    Adafruit invests time and resources providing this open source code,
+    please support Adafruit and open-source hardware by purchasing
     products from Adafruit!
 */
 /**************************************************************************/
@@ -50,11 +50,11 @@ Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 // Or use this line for a breakout or shield with an I2C connection:
 //Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
 
-/*  
+/*
     We can encode many different kinds of pointers to the card,
     from a URL, to an Email address, to a phone number, and many more
     check the library header .h file to see the large # of supported
-    prefixes! 
+    prefixes!
 */
 // For a http://www. url:
 char * url = "adafruit.com/blog/";
@@ -82,15 +82,12 @@ void setup(void) {
     while (1); // halt
   }
   // Got ok data, print it out!
-  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX);
+  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC);
   Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
-  
-  // configure board to read RFID tags
-  nfc.SAMConfig();  
 }
 
-void loop(void) 
+void loop(void)
 {
   uint8_t success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
@@ -108,9 +105,9 @@ void loop(void)
   // 1.) Wait for an NTAG203 card.  When one is found 'uid' will be populated with
   // the UID, and uidLength will indicate the size of the UID (normally 7)
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-  
+
   // It seems we found a valid ISO14443A Tag!
-  if (success) 
+  if (success)
   {
     // 2.) Display some basic information about the card
     Serial.println("Found an ISO14443A card");
@@ -118,7 +115,7 @@ void loop(void)
     Serial.print("  UID Value: ");
     nfc.PrintHex(uid, uidLength);
     Serial.println("");
-    
+
     if (uidLength != 7)
     {
       Serial.println("This doesn't seem to be an NTAG203 tag (UUID length != 7 bytes)!");
@@ -126,14 +123,14 @@ void loop(void)
     else
     {
       uint8_t data[32];
-      
+
       // We probably have an NTAG2xx card (though it could be Ultralight as well)
-      Serial.println("Seems to be an NTAG2xx tag (7 byte UID)");	  
-      
+      Serial.println("Seems to be an NTAG2xx tag (7 byte UID)");
+
       // NTAG2x3 cards have 39*4 bytes of user pages (156 user bytes),
       // starting at page 4 ... larger cards just add pages to the end of
       // this range:
-      
+
       // See: http://www.nxp.com/documents/short_data_sheet/NTAG203_SDS.pdf
 
       // TAG Type       PAGES   USER START    USER STOP
@@ -141,7 +138,7 @@ void loop(void)
       // NTAG 203       42      4             39
       // NTAG 213       45      4             39
       // NTAG 215       135     4             129
-      // NTAG 216       231     4             225      
+      // NTAG 216       231     4             225
 
 
       // 3.) Check if the NDEF Capability Container (CC) bits are already set
@@ -172,10 +169,10 @@ void loop(void)
           Serial.print("Tag is NDEF formatted. Data area size = ");
           Serial.print(dataLength);
           Serial.println(" bytes");
-          
+
           // 5.) Erase the old data area
           Serial.print("Erasing previous data area ");
-          for (uint8_t i = 4; i < (dataLength/4)+4; i++) 
+          for (uint8_t i = 4; i < (dataLength/4)+4; i++)
           {
             memset(data, 0, 4);
             success = nfc.ntag2xx_WritePage(i, data);
@@ -187,7 +184,7 @@ void loop(void)
             }
           }
           Serial.println(" DONE!");
-          
+
           // 6.) Try to add a new NDEF URI record
           Serial.print("Writing URI as NDEF Record ... ");
           success = nfc.ntag2xx_WriteNDEFURI(ndefprefix, url, dataLength);
@@ -199,17 +196,17 @@ void loop(void)
           {
             Serial.println("ERROR! (URI length?)");
           }
-                    
+
         } // CC contents NDEF record check
       } // CC page read check
     } // UUID length check
-    
+
     // Wait a bit before trying again
     Serial.flush();
     while (!Serial.available());
     while (Serial.available()) {
     Serial.read();
     }
-    Serial.flush();    
+    Serial.flush();
   } // Start waiting for a new ISO14443A tag
 }
