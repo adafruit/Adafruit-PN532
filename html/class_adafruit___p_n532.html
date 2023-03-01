@@ -77,9 +77,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a289e2b626aa8a346e84f3a4f5de49ccd"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#a289e2b626aa8a346e84f3a4f5de49ccd">Adafruit_PN532</a> (uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t ss)</td></tr>
 <tr class="memdesc:a289e2b626aa8a346e84f3a4f5de49ccd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a new PN532 class using software SPI.  <a href="#a289e2b626aa8a346e84f3a4f5de49ccd">More...</a><br /></td></tr>
 <tr class="separator:a289e2b626aa8a346e84f3a4f5de49ccd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aea566b77a5b2ed37bd72901f97071e89"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#aea566b77a5b2ed37bd72901f97071e89">Adafruit_PN532</a> (uint8_t ss)</td></tr>
-<tr class="memdesc:aea566b77a5b2ed37bd72901f97071e89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a new PN532 class using hardware SPI.  <a href="#aea566b77a5b2ed37bd72901f97071e89">More...</a><br /></td></tr>
-<tr class="separator:aea566b77a5b2ed37bd72901f97071e89"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88e05d8af3194eac66b1b91b00975329"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#a88e05d8af3194eac66b1b91b00975329">Adafruit_PN532</a> (uint8_t ss, SPIClass *theSPI=&amp;SPI)</td></tr>
+<tr class="memdesc:a88e05d8af3194eac66b1b91b00975329"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a new PN532 class using hardware SPI.  <a href="#a88e05d8af3194eac66b1b91b00975329">More...</a><br /></td></tr>
+<tr class="separator:a88e05d8af3194eac66b1b91b00975329"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:add07037b56e902339d1c6b459426ee04"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_adafruit___p_n532.html#add07037b56e902339d1c6b459426ee04">Adafruit_PN532</a> (uint8_t irq, uint8_t <a class="el" href="class_adafruit___p_n532.html#a113b1f9d15c805491dc661cb80c63c46">reset</a>, TwoWire *theWire=&amp;Wire)</td></tr>
 <tr class="memdesc:add07037b56e902339d1c6b459426ee04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a new PN532 class using I2C.  <a href="#add07037b56e902339d1c6b459426ee04">More...</a><br /></td></tr>
 <tr class="separator:add07037b56e902339d1c6b459426ee04"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -228,8 +228,8 @@ Static Public Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="aea566b77a5b2ed37bd72901f97071e89"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aea566b77a5b2ed37bd72901f97071e89">&#9670;&nbsp;</a></span>Adafruit_PN532() <span class="overload">[2/4]</span></h2>
+<a id="a88e05d8af3194eac66b1b91b00975329"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a88e05d8af3194eac66b1b91b00975329">&#9670;&nbsp;</a></span>Adafruit_PN532() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -238,8 +238,18 @@ Static Public Member Functions</h2></td></tr>
           <td class="memname">Adafruit_PN532::Adafruit_PN532 </td>
           <td>(</td>
           <td class="paramtype">uint8_t&#160;</td>
-          <td class="paramname"><em>ss</em></td><td>)</td>
+          <td class="paramname"><em>ss</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">SPIClass *&#160;</td>
+          <td class="paramname"><em>theSPI</em> = <code>&amp;SPI</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -248,6 +258,7 @@ Static Public Member Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">ss</td><td>SPI chip select pin (CS/SSEL) </td></tr>
+    <tr><td class="paramname">theSPI</td><td>pointer to the SPI bus to use </td></tr>
   </table>
   </dd>
 </dl>
