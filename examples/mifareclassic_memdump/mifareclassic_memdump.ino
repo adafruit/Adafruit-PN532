@@ -72,9 +72,6 @@ void setup(void) {
   Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC);
   Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
 
-  // configure board to read RFID tags
-  nfc.SAMConfig();
-
   Serial.println("Waiting for an ISO14443A Card ...");
 }
 

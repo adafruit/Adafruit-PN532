@@ -1,31 +1,31 @@
 /**************************************************************************/
-/*! 
+/*!
     @file     readMifareClassicIrq.pde
     @author   Adafruit Industries
 	@license  BSD (see license.txt)
 
     This example will wait for any ISO14443A card or tag, and
     depending on the size of the UID will attempt to read from it.
-   
+
     If the card has a 4-byte UID it is probably a Mifare
     Classic card, and the following steps are taken:
-   
+
     Reads the 4 byte (32 bit) ID of a MiFare Classic card.
     Since the classic cards have only 32 bit identifiers you can stick
 	them in a single variable and use that to compare card ID's as a
 	number. This doesn't work for ultralight cards that have longer 7
 	byte IDs!
-    
+
     Note that you need the baud rate to be 115200 because we need to
 	print out the data and read from the card at the same time!
 
 This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
-This library works with the Adafruit NFC breakout 
+This library works with the Adafruit NFC breakout
   ----> https://www.adafruit.com/products/364
- 
-Check out the links above for our tutorials and wiring diagrams 
 
-This example is for communicating with the PN532 chip using I2C. Wiring 
+Check out the links above for our tutorials and wiring diagrams
+
+This example is for communicating with the PN532 chip using I2C. Wiring
 should be as follows:
   PN532 SDA -> SDA pin
   PN532 SCL -> SCL pin
@@ -35,8 +35,8 @@ should be as follows:
   PN532 3.3v -> 3.3v
   PN532 GND -> GND
 
-Adafruit invests time and resources providing this open source code, 
-please support Adafruit and open-source hardware by purchasing 
+Adafruit invests time and resources providing this open source code,
+please support Adafruit and open-source hardware by purchasing
 products from Adafruit!
 */
 /**************************************************************************/
@@ -78,12 +78,9 @@ void setup(void) {
     while (1); // halt
   }
   // Got ok data, print it out!
-  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX);
+  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC);
   Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
-  
-  // configure board to read RFID tags
-  nfc.SAMConfig();
 
   startListeningToNFC();
 }
@@ -99,10 +96,10 @@ void loop(void) {
 
     // When the IRQ is pulled low - the reader has got something for us.
     if (irqCurr == LOW && irqPrev == HIGH) {
-       Serial.println("Got NFC IRQ");  
-       handleCardDetected(); 
+       Serial.println("Got NFC IRQ");
+       handleCardDetected();
     }
-  
+
     irqPrev = irqCurr;
   }
 }
@@ -110,7 +107,7 @@ void loop(void) {
 void startListeningToNFC() {
   // Reset our IRQ indicators
   irqPrev = irqCurr = HIGH;
-  
+
   Serial.println("Waiting for an ISO14443A Card ...");
   nfc.startPassiveTargetIDDetection(PN532_MIFARE_ISO14443A);
 }
@@ -130,17 +127,17 @@ void handleCardDetected() {
       Serial.print("  UID Length: ");Serial.print(uidLength, DEC);Serial.println(" bytes");
       Serial.print("  UID Value: ");
       nfc.PrintHex(uid, uidLength);
-      
+
       if (uidLength == 4)
       {
-        // We probably have a Mifare Classic card ... 
+        // We probably have a Mifare Classic card ...
         uint32_t cardid = uid[0];
         cardid <<= 8;
         cardid |= uid[1];
         cardid <<= 8;
-        cardid |= uid[2];  
+        cardid |= uid[2];
         cardid <<= 8;
-        cardid |= uid[3]; 
+        cardid |= uid[3];
         Serial.print("Seems to be a Mifare Classic card #");
         Serial.println(cardid);
       }

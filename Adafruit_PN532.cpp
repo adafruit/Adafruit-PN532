@@ -117,12 +117,13 @@ Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset, TwoWire *theWire)
     @brief  Instantiates a new PN532 class using hardware SPI.
 
     @param  ss        SPI chip select pin (CS/SSEL)
+    @param  theSPI    pointer to the SPI bus to use
 */
 /**************************************************************************/
-Adafruit_PN532::Adafruit_PN532(uint8_t ss) {
+Adafruit_PN532::Adafruit_PN532(uint8_t ss, SPIClass *theSPI) {
   _cs = ss;
-  spi_dev =
-      new Adafruit_SPIDevice(ss, 1000000, SPI_BITORDER_LSBFIRST, SPI_MODE0);
+  spi_dev = new Adafruit_SPIDevice(ss, 1000000, SPI_BITORDER_LSBFIRST,
+                                   SPI_MODE0, theSPI);
 }
 
 /**************************************************************************/
