@@ -108,8 +108,13 @@ void startListeningToNFC() {
   // Reset our IRQ indicators
   irqPrev = irqCurr = HIGH;
 
-  Serial.println("Waiting for an ISO14443A Card ...");
-  nfc.startPassiveTargetIDDetection(PN532_MIFARE_ISO14443A);
+  Serial.println("Starting passive read for an ISO14443A Card ...");
+  if (!nfc.startPassiveTargetIDDetection(PN532_MIFARE_ISO14443A)) {
+    Serial.println("No card found. Waiting...");
+  } else {
+    Serial.println("Card already present.");
+    handleCardDetected();
+  }
 }
 
 void handleCardDetected() {
