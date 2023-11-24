@@ -633,13 +633,15 @@ bool Adafruit_PN532::readDetectedPassiveTargetID(uint8_t *uid,
   PN532DEBUGPRINT.print(F("SAK: 0x"));
   PN532DEBUGPRINT.println(pn532_packetbuffer[11], HEX);
 #endif
+  if (pn532_packetbuffer[12] > 7)
+    return 0;
 
   /* Card appears to be Mifare Classic */
   *uidLength = pn532_packetbuffer[12];
 #ifdef MIFAREDEBUG
   PN532DEBUGPRINT.print(F("UID:"));
 #endif
-  for (uint8_t i = 0; i < pn532_packetbuffer[12]; i++) {
+  for (uint8_t i = 0; i < *uidLength; i++) {
     uid[i] = pn532_packetbuffer[13 + i];
 #ifdef MIFAREDEBUG
     PN532DEBUGPRINT.print(F(" 0x"));
