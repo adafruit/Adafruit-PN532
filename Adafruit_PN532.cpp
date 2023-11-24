@@ -1134,7 +1134,7 @@ uint8_t Adafruit_PN532::mifareclassic_WriteNDEFURI(uint8_t sectorNumber,
     // Url fits in three blocks
     memcpy(sectorbuffer1 + 9, url, 7);
     memcpy(sectorbuffer2, url + 7, 16);
-    memcpy(sectorbuffer3, url + 23, len - 24);
+    memcpy(sectorbuffer3, url + 23, len - 23);
     sectorbuffer3[len - 22] = 0xFE;
   }
 
