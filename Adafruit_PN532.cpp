@@ -309,6 +309,24 @@ uint32_t Adafruit_PN532::getFirmwareVersion(void) {
 
 /**************************************************************************/
 /*!
+    @brief  Puts the module into sleep mode
+
+    @returns  1 if everything is OK, 0 if unable to shutdown
+*/
+/**************************************************************************/
+
+bool Adafruit_PN532::shutDown() {
+	pn532_packetbuffer[0] = PN532_COMMAND_POWERDOWN;
+	pn532_packetbuffer[1] =  0x20; //(0x20, for SPI) (0x28 for SPI and RF detectionThe wakeup source(s) you want too use
+	pn532_packetbuffer[2] = 0x01; // To eneable the IRQ, 0x00 if you dont want too use the IRQ
+
+
+	if(sendCommandCheckAck(pn532_packetbuffer, 3))
+	return pn532_packetbuffer[1];
+}
+
+/**************************************************************************/
+/*!
     @brief  Sends a command and waits a specified period for the ACK
 
     @param  cmd       Pointer to the command buffer

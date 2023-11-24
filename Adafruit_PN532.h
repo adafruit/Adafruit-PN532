@@ -159,6 +159,7 @@ public:
   bool writeGPIO(uint8_t pinstate);
   uint8_t readGPIO(void);
   bool setPassiveActivationRetries(uint8_t maxRetries);
+  bool shutDown(void);
 
   // ISO14443A functions
   bool readPassiveTargetID(
