@@ -177,10 +177,11 @@ public:
 
   // ISO14443A functions
   bool readPassiveTargetID(
-      uint8_t cardbaudrate, uint8_t *uid, uint8_t *uidLength,
+      uint8_t cardbaudrate, uint8_t *uid, uint8_t *uidLength, uint16_t *atqa, uint8_t *sak,
       uint16_t timeout = 0); // timeout 0 means no timeout - will block forever.
+  bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid, uint8_t *uidLength, uint16_t timeout = 0);
   bool startPassiveTargetIDDetection(uint8_t cardbaudrate);
-  bool readDetectedPassiveTargetID(uint8_t *uid, uint8_t *uidLength);
+  bool readDetectedPassiveTargetID(uint8_t *uid, uint8_t *uidLength, uint16_t *atqa, uint8_t *sak);
   bool inDataExchange(uint8_t *send, uint8_t sendLength, uint8_t *response,
                       uint8_t *responseLength);
   bool inListPassiveTarget();
