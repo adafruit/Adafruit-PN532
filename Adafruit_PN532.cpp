@@ -1965,31 +1965,39 @@ void Adafruit_PN532::readdata(uint8_t *buff, uint8_t n) {
 
 /**************************************************************************/
 /*!
-    @brief   set the PN532 as iso14443a Target behaving as a SmartCard
+    @brief   set the PN532 as Target behaving as a MIFARE Classic/FeliCa
+    @param uid ISO14443-A UID of the card that will be emulated
+    @param idm ISO18092 IDm of the card that will be emulated
+    @param pmm ISO18092 PMm of the card that will be emulated
+    @param sys_code ISO18092 system code of the card that will be emulated
+    @author Andrea Canale(https://github.com/andreock)
     @return  true on success, false otherwise.
-    @note    Author: Salvador Mendoza (salmg.net) new functions:
-             -AsTarget
-             -getDataTarget
-             -setDataTarget
 */
 /**************************************************************************/
-uint8_t Adafruit_PN532::AsTarget() {
-  pn532_packetbuffer[0] = 0x8C;
+bool Adafruit_PN532::AsTarget(uint8_t *uid, uint8_t *idm, uint8_t *pmm, uint8_t *sys_codes) {
   uint8_t target[] = {
-      0x8C,             // INIT AS TARGET
-      0x00,             // MODE -> BITFIELD
-      0x08, 0x00,       // SENS_RES - MIFARE PARAMS
-      0xdc, 0x44, 0x20, // NFCID1T
-      0x60,             // SEL_RES
-      0x01, 0xfe, // NFCID2T MUST START WITH 01fe - FELICA PARAMS - POL_RES
-      0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xc0,
-      0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, // PAD
-      0xff, 0xff,                               // SYSTEM CODE
-      0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44,
-      0x33, 0x22, 0x11, 0x01, 0x00, // NFCID3t MAX 47 BYTES ATR_RES
-      0x0d, 0x52, 0x46, 0x49, 0x44, 0x49, 0x4f,
-      0x74, 0x20, 0x50, 0x4e, 0x35, 0x33, 0x32 // HISTORICAL BYTES
+      PN532_COMMAND_TGINITASTARGET,
+      4, // MODE: PICC only 
+
+      0x04, 0x0,       // SENS_RES(ATQA, 0x04 MIFARE Classic)
+      0x00, 0x00, 0x00, // NFCID1(UID)
+      0x08,             // SEL_RES(SAK)
+
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FeliCa tag UID
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // PMm
+      0x00, 0x00, // Systemcode
+
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // NFCID3t(ATR_RES, 0 in case of MIFARE Classic)
+
+      0, // length of general bytes
+      0  // length of historical bytes
   };
+
+  memcpy(target + 4, uid, 3);
+  memcpy(target+ 8, idm, 8);
+  memcpy(target + 16, pmm, 8);
+  memcpy(target + 24, sys_codes, 2);
+  
   if (!sendCommandCheckAck(target, sizeof(target)))
     return false;
 

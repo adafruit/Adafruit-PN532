@@ -185,7 +185,7 @@ public:
   bool inDataExchange(uint8_t *send, uint8_t sendLength, uint8_t *response,
                       uint8_t *responseLength);
   bool inListPassiveTarget();
-  uint8_t AsTarget();
+  bool AsTarget(uint8_t *uid, uint8_t *idm, uint8_t *pmm, uint8_t *sys_codes);
   uint8_t getDataTarget(uint8_t *cmd, uint8_t *cmdlen);
   uint8_t setDataTarget(uint8_t *cmd, uint8_t cmdlen);
 
