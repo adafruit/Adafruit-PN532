@@ -693,6 +693,90 @@ bool Adafruit_PN532::readDetectedPassiveTargetID(uint8_t *uid,
 
 /**************************************************************************/
 /*!
+    @brief   Exchanges an APDU with an EMV card
+
+    @param   send            Pointer to data to send
+    @param   sendLength      Length of the data to send
+    @param   response        Pointer to response data
+    @param   responseLength  Pointer to the response data length
+    @return  true on success, false otherwise.
+    @author Andrea Canale(https://github.com/andreock)
+*/
+/**************************************************************************/
+bool Adafruit_PN532::EMVinDataExchange(uint8_t *send, uint8_t sendLength,
+                                    uint8_t *response,
+                                    uint8_t *responseLength) {
+  if (sendLength > PN532_PACKBUFFSIZ - 2) {
+#ifdef PN532DEBUG
+    PN532DEBUGPRINT.println(F("APDU length too long for packet buffer"));
+#endif
+    return false;
+  }
+  uint8_t i;
+
+  pn532_packetbuffer[0] = 0x40; // PN532_COMMAND_INDATAEXCHANGE;
+  pn532_packetbuffer[1] = 1;
+  for (i = 0; i < sendLength; ++i) {
+    pn532_packetbuffer[i + 2] = send[i];
+  }
+
+  if (!sendCommandCheckAck(pn532_packetbuffer, sendLength + 2, 3000)) {
+#ifdef PN532DEBUG
+    PN532DEBUGPRINT.println(F("Could not send APDU"));
+#endif
+    return false;
+  }
+
+  if (!waitready(1000)) {
+#ifdef PN532DEBUG
+    PN532DEBUGPRINT.println(F("Response never received for APDU..."));
+#endif
+    return false;
+  }
+
+  readdata(pn532_packetbuffer, sizeof(pn532_packetbuffer));
+  if (pn532_packetbuffer[0] == 0 && pn532_packetbuffer[1] == 0 &&
+      pn532_packetbuffer[2] == 0xff) {
+    uint8_t length = 0;
+    for (size_t i = 0; i < 240; i++) {
+      if(pn532_packetbuffer[i] == 0x90 && pn532_packetbuffer[i+1] == 0x00) {
+        Serial.println("Found finish");
+        break;
+      }
+      length++;
+    }
+    length += 2;
+    *responseLength = length;
+    if (pn532_packetbuffer[5] == PN532_PN532TOHOST &&
+        pn532_packetbuffer[6] == PN532_RESPONSE_INDATAEXCHANGE) {
+      if ((pn532_packetbuffer[7] & 0x3f) != 0) {
+#ifdef PN532DEBUG
+        PN532DEBUGPRINT.println(F("Status code indicates an error"));
+        Serial.print(pn532_packetbuffer[7] & 0x3f, HEX);
+#endif
+        return false;
+      }
+
+      length -= 3;
+
+      for (i = 0; i < length; ++i) {
+        response[i] = pn532_packetbuffer[8 + i];
+      }
+
+      return true;
+    } else {
+      PN532DEBUGPRINT.print(F("Don't know how to handle this command: "));
+      PN532DEBUGPRINT.println(pn532_packetbuffer[6], HEX);
+      return false;
+    }
+  } else {
+    PN532DEBUGPRINT.println(F("Preamble missing"));
+    return false;
+  }
+}
+
+/**************************************************************************/
+/*!
     @brief   Exchanges an APDU with the currently inlisted peer
 
     @param   send            Pointer to data to send
