@@ -326,7 +326,7 @@ bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen,
   // I2C works without using IRQ pin by polling for RDY byte
   // seems to work best with some delays between transactions
   uint8_t SLOWDOWN = 0;
-  if (i2c_dev)
+  if (i2c_dev || spi_dev)  // SPI and I2C need 1ms slow for page reads
     SLOWDOWN = 1;
 
   // write the command
