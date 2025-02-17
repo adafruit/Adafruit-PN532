@@ -73,7 +73,7 @@ byte pn532response_firmwarevers[] = {
 
 // If using Native Port on Arduino Zero or Due define as SerialUSB
 #define PN532DEBUGPRINT Serial ///< Fixed name for debug Serial instance
-//#define PN532DEBUGPRINT SerialUSB ///< Fixed name for debug Serial instance
+// #define PN532DEBUGPRINT SerialUSB ///< Fixed name for debug Serial instance
 
 #define PN532_PACKBUFFSIZ 64                ///< Packet buffer size in bytes
 byte pn532_packetbuffer[PN532_PACKBUFFSIZ]; ///< Packet buffer used in various
@@ -326,7 +326,7 @@ bool Adafruit_PN532::sendCommandCheckAck(uint8_t *cmd, uint8_t cmdlen,
   // I2C works without using IRQ pin by polling for RDY byte
   // seems to work best with some delays between transactions
   uint8_t SLOWDOWN = 0;
-  if (i2c_dev || spi_dev)  // SPI and I2C need 1ms slow for page reads
+  if (i2c_dev || spi_dev) // SPI and I2C need 1ms slow for page reads
     SLOWDOWN = 1;
 
   // write the command
