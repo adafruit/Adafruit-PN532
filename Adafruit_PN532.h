@@ -89,6 +89,11 @@
 #define MIFARE_CMD_STORE (0xC2)            ///< Store
 #define MIFARE_ULTRALIGHT_CMD_WRITE (0xA2) ///< Write (MiFare Ultralight)
 
+// FeliCa Commands
+#define FELICA_CMD_POLLING (0x00)                  ///< Polling cmd
+#define FELICA_CMD_READ_WITHOUT_ENCRYPTION (0x06)  ///< Read without encryption
+#define FELICA_CMD_WRITE_WITHOUT_ENCRYPTION (0x08) ///< Write without encryption
+
 // Prefixes for NDEF Records (to identify record type)
 #define NDEF_URIPREFIX_NONE (0x00)         ///< No prefix
 #define NDEF_URIPREFIX_HTTP_WWWDOT (0x01)  ///< HTTP www. prefix
@@ -135,6 +140,16 @@
 #define PN532_GPIO_P34 (4)              ///< GPIO 34
 #define PN532_GPIO_P35 (5)              ///< GPIO 35
 
+// FeliCa consts
+#define FELICA_READ_MAX_SERVICE_NUM                                            \
+  16 ///< Maximum number of services code during reading
+#define FELICA_READ_MAX_BLOCK_NUM 12 ///< for typical FeliCa card
+#define FELICA_WRITE_MAX_SERVICE_NUM                                           \
+  16 ///< Maximum number of services code during writing
+#define FELICA_WRITE_MAX_BLOCK_NUM 10 ///< for typical FeliCa card
+#define FELICA_REQ_SERVICE_MAX_NODE_NUM                                        \
+  32 ///< Max node for a request service call
+
 /**
  * @brief Class for working with Adafruit PN532 NFC/RFID breakout boards.
  */
@@ -162,14 +177,17 @@ public:
 
   // ISO14443A functions
   bool readPassiveTargetID(
-      uint8_t cardbaudrate, uint8_t *uid, uint8_t *uidLength,
+      uint8_t cardbaudrate, uint8_t *uid, uint8_t *uidLength, uint16_t *atqa, uint8_t *sak,
       uint16_t timeout = 0); // timeout 0 means no timeout - will block forever.
+  bool readPassiveTargetID(uint8_t cardbaudrate, uint8_t *uid, uint8_t *uidLength, uint16_t timeout = 0);
   bool startPassiveTargetIDDetection(uint8_t cardbaudrate);
-  bool readDetectedPassiveTargetID(uint8_t *uid, uint8_t *uidLength);
+  bool readDetectedPassiveTargetID(uint8_t *uid, uint8_t *uidLength, uint16_t *atqa, uint8_t *sak);
   bool inDataExchange(uint8_t *send, uint8_t sendLength, uint8_t *response,
                       uint8_t *responseLength);
+  bool EMVinDataExchange(uint8_t *send, uint8_t sendLength, uint8_t *response,
+                      uint8_t *responseLength);
   bool inListPassiveTarget();
-  uint8_t AsTarget();
+  bool AsTarget(uint8_t *uid, uint8_t *idm, uint8_t *pmm, uint8_t *sys_codes);
   uint8_t getDataTarget(uint8_t *cmd, uint8_t *cmdlen);
   uint8_t setDataTarget(uint8_t *cmd, uint8_t cmdlen);
 
@@ -195,16 +213,36 @@ public:
   uint8_t ntag2xx_WriteNDEFURI(uint8_t uriIdentifier, char *url,
                                uint8_t dataLen);
 
+  // Felica functions
+  uint8_t felica_Polling(uint16_t systemCode, uint8_t requestCode, uint8_t *idm,
+                         uint8_t *pmm, uint16_t *systemCodeResponse,
+                         uint16_t timeout = 1000);
+  uint8_t felica_SendCommand(const uint8_t *command, uint8_t commandlength,
+                             uint8_t responseLength);
+  uint8_t felica_ReadWithoutEncryption(uint8_t numService,
+                                       const uint16_t *serviceCodeList,
+                                       uint8_t numBlock,
+                                       const uint16_t *blockList,
+                                       uint8_t blockData[][16]);
+  uint8_t felica_WriteWithoutEncryption(uint8_t numService,
+                                        const uint16_t *serviceCodeList,
+                                        uint8_t numBlock,
+                                        const uint16_t *blockList,
+                                        uint8_t blockData[][16]);
+  uint8_t felica_Release();
+
   // Help functions to display formatted text
   static void PrintHex(const byte *data, const uint32_t numBytes);
   static void PrintHexChar(const byte *pbtData, const uint32_t numBytes);
 
 private:
   int8_t _irq = -1, _reset = -1, _cs = -1;
-  int8_t _uid[7];      // ISO14443A uid
-  int8_t _uidLen;      // uid len
-  int8_t _key[6];      // Mifare Classic key
-  int8_t _inListedTag; // Tg number of inlisted tag.
+  int8_t _uid[7];        // ISO14443A uid
+  int8_t _uidLen;        // uid len
+  int8_t _key[6];        // Mifare Classic key
+  int8_t _inListedTag;   // Tg number of inlisted tag.
+  uint8_t _felicaIDm[8]; // FeliCa IDm (NFCID2)
+  uint8_t _felicaPMm[8]; // FeliCa PMm (PAD)
 
   // Low level communication functions that handle both SPI and I2C.
   void readdata(uint8_t *buff, uint8_t n);
