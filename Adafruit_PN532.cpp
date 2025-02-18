@@ -1818,3 +1818,113 @@ void Adafruit_PN532::writecommand(uint8_t *cmd, uint8_t cmdlen) {
     }
   }
 }
+
+/**************************************************************************/
+/*!
+    @brief  Builds the command to send to write to the PN532 registers
+
+    @param  reg       Pointer to the command buffer, goes in the form of
+                      ADDR1H ADDR1L VAL1...ADDRnH ADDRnL VALn
+    @param  len       Command length in bytes
+*/
+/**************************************************************************/
+
+bool Adafruit_PN532::WriteRegister(uint8_t *reg, uint8_t len) {
+  uint8_t cmd[len + 1];
+  uint8_t result[8];
+  cmd[0] = PN532_COMMAND_WRITEREGISTER;
+  for (uint8_t i = 0; i < len; i++) {
+    cmd[i + 1] = reg[i];
+  }
+  if (sendCommandCheckAck(cmd, len + 1)) {
+    readdata(result, 8);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/**************************************************************************/
+/*!
+    @brief  Builds the command to send commands directly to the PICC
+            Works like inDataExchange but doesn't handles all the
+            protocol features
+
+    @param  data      Pointer to the command buffer
+    @param  len       Command length in bytes
+*/
+/**************************************************************************/
+bool Adafruit_PN532::InCommunicateThru(uint8_t *data, uint8_t len) {
+  uint8_t cmd[len + 1];
+  uint8_t result[8];
+  cmd[0] = PN532_COMMAND_INCOMMUNICATETHRU;
+  for (uint8_t i = 0; i < len; i++) {
+    cmd[i + 1] = data[i];
+  }
+  if (sendCommandCheckAck(cmd, len + 1)) {
+    readdata(result, 8);
+    // If byte 8 isn't 0x00 we probably have an error,
+    if (result[7] != 0x00) {
+      return false;
+    }
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/**************************************************************************/
+/*!
+    @brief  Performs the command sequence in some chinese MiFare Classic tags
+            that unlocks a special backdoor to perform write/read
+            commands without authentication
+
+                        >HALT + CRC (50 00 57 CD)
+                        >UNLOCK1	(40) 7 bits
+                        <ACK		(A) 4 bits
+                        >UNLOCK2	(43)
+                        <ACK		(A) 4 bits
+*/
+/**************************************************************************/
+bool Adafruit_PN532::UnlockBackdoor() {
+  // Disable automatic CRC performed by the PN532
+  uint8_t regState1[6] = {0x63, 0x02, 0x00, 0x63, 0x03, 0x00};
+  if (!WriteRegister(regState1, 6)) {
+    return false;
+  }
+  // HALT
+  uint8_t halt[4] = {0x50, 0x00, 0x57, 0xcd};
+  InCommunicateThru(halt, 4);
+
+  // Set BitFraming to only send 7 bits
+  uint8_t reg1[3] = {0x63, 0x3d, 0x07};
+  if (!WriteRegister(reg1, 3)) {
+    return false;
+  }
+  // UNLOCK1
+  bool unlockSuccess;
+  uint8_t unlock1[1] = {0x40};
+  unlockSuccess = InCommunicateThru(unlock1, 1);
+
+  // Set BitFraming back to normal
+  uint8_t reg2[3] = {0x63, 0x3d, 0x00};
+  if (!WriteRegister(reg2, 3)) {
+    return false;
+  }
+  // UNLOCK2
+  if (unlockSuccess == true) {
+    uint8_t unlock2[1] = {0x43};
+    if (!InCommunicateThru(unlock2, 1)) {
+      return false;
+    }
+  }
+  // Enable automatic CRC performed by the PN532
+  uint8_t regState2[6] = {0x63, 0x02, 0x80, 0x63, 0x03, 0x80};
+  if (!WriteRegister(regState2, 6)) {
+    return false;
+  }
+  if (unlockSuccess == false) {
+    return false;
+  }
+  return true;
+}

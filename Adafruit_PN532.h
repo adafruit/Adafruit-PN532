@@ -174,6 +174,8 @@ public:
   uint8_t setDataTarget(uint8_t *cmd, uint8_t cmdlen);
 
   // Mifare Classic functions
+
+  bool UnlockBackdoor();
   bool mifareclassic_IsFirstBlock(uint32_t uiBlock);
   bool mifareclassic_IsTrailerBlock(uint32_t uiBlock);
   uint8_t mifareclassic_AuthenticateBlock(uint8_t *uid, uint8_t uidLen,
@@ -212,6 +214,8 @@ private:
   bool isready();
   bool waitready(uint16_t timeout);
   bool readack();
+  bool WriteRegister(uint8_t *reg, uint8_t len);
+  bool InCommunicateThru(uint8_t *data, uint8_t len);
 
   Adafruit_SPIDevice *spi_dev = NULL;
   Adafruit_I2CDevice *i2c_dev = NULL;
