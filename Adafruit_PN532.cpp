@@ -75,7 +75,7 @@ byte pn532response_firmwarevers[] = {
 #define PN532DEBUGPRINT Serial ///< Fixed name for debug Serial instance
 // #define PN532DEBUGPRINT SerialUSB ///< Fixed name for debug Serial instance
 
-#define PN532_PACKBUFFSIZ 64                ///< Packet buffer size in bytes
+#define PN532_PACKBUFFSIZ 128               ///< Packet buffer size in bytes
 byte pn532_packetbuffer[PN532_PACKBUFFSIZ]; ///< Packet buffer used in various
                                             ///< transactions
 
